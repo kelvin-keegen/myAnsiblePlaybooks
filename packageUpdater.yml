@@ -1,0 +1,14 @@
+---
+- name: Update Ubuntu servers
+  hosts: all
+  become: yes  # This enables privilege escalation to root
+  
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        
+    - name: Upgrade all packages
+      apt:
+        upgrade: yes
+        autoclean: yes
