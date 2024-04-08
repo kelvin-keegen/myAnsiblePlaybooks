@@ -27,4 +27,4 @@
         method: POST
         body: "Reboot required on {{ ansible_hostname }}. Please check."
         status_code: 200
-      when: upgrade_result is defined and upgrade_result.changed and upgrade_result.reboot_required | default(false)
+      when: upgrade_result.reboot_required | default(false)
