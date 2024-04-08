@@ -18,9 +18,6 @@
         autoclean: yes
       register: upgrade_result
 
-    # - debug:
-        # var: upgrade_result
-
     - name: Notify if reboot is required
       uri:
         url: "{{ notification_url }}"
