@@ -2,6 +2,8 @@
 - name: Update Ubuntu servers
   hosts: all
   become: yes  # This enables privilege escalation to root
+  vars: 
+    ansible_ssh_port: 69  # Change this to your custom SSH port
   
   tasks:
     - name: Update apt cache
