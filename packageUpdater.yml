@@ -1,10 +1,11 @@
 ---
-- name: Update Ubuntu servers
+- name: Update Ubuntu servers and notify if reboot is required
   hosts: all
   become: yes  # This enables privilege escalation to root
   vars: 
     ansible_ssh_port: "{{ random_int }}"  # Change this to your custom SSH port
     ansible_become_pass: "{{ random_str }}"  # Replace with your root password
+    notification_url: "{{ some_url }}"  # Replace with your notification endpoint
   
   tasks:
     - name: Update apt cache
@@ -15,3 +16,12 @@
       apt:
         upgrade: yes
         autoclean: yes
+      register: upgrade_result
+
+    - name: Notify if reboot is required
+      uri:
+        url: "{{ notification_url }}"
+        method: POST
+        body: "Upgrade complete! Reboot required on {{ ansible_hostname }}. Please check."
+        status_code: 200
+      when: upgrade_result.reboot_required
