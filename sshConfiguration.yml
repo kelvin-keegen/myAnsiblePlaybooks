@@ -1,7 +1,7 @@
 ---
 - name: Secure SSH Configuration
   hosts: all
-  become: true
+  become: yes
   vars: 
     ansible_ssh_port: "{{ some_ssh_int }}"  # Change this to your custom SSH port
   tasks:
