@@ -1,0 +1,42 @@
+---
+- name: Configure Ubuntu
+  hosts: all
+  become: yes
+  vars:
+    regular_user: "{{ some_user }}"
+    devops_user: "{{ some_dev_user }}"
+    new_password: "{{ random_pass }}"
+    new_ssh_port: "{{ some_ssh_int }}"
+
+  tasks:
+
+    - name: Create regular_user with sudo privileges and set default shell to bash
+      user:
+        name: "{{ regular_user }}"
+        shell: /bin/bash
+        password: "{{ {{ new_password }} | password_hash('sha512') }}"
+        append: yes
+        groups: sudo
+        createhome: yes
+
+    - name: Create devops_user with sudo privileges and set default shell to bash
+      user:
+        name: "{{ devops_user }}"
+        shell: /bin/bash
+        password: "{{ {{ new_password }} | password_hash('sha512') }}"
+        append: yes
+        groups: sudo
+        createhome: yes
+
+    - name: Change SSH port to new_ssh_port
+      replace:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?Port\s+.+$'
+        replace: "{{ new_ssh_port }}"
+      notify: Restart SSH
+
+  handlers:
+    - name: Restart SSH
+      service:
+        name: sshd
+        state: restarted

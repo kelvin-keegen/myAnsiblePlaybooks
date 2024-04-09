@@ -1,0 +1,21 @@
+---
+- name: Install necessary packages on Ubuntu 22.04 LTS
+  hosts: all
+  become: yes
+  tasks:
+    - name: Update apt package cache
+      apt:
+        update_cache: yes
+
+    - name: Install core packages
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - python3-cryptography
+        - openssh-server
+        - cockpit
+        - speedtest-cli
+        - nfs-common
+        - htop
+

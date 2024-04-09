@@ -3,8 +3,8 @@
   hosts: all
   become: yes  # This enables privilege escalation to root
   vars: 
-    ansible_ssh_port: "{{ random_int }}"  # Change this to your custom SSH port
-    ansible_become_pass: "{{ random_str }}"  # Replace with your root password
+    ansible_ssh_port: "{{ some_ssh_int }}"  # Change this to your custom SSH port
+    ansible_become_pass: "{{ random_pass }}"  # Replace with your root password
     notification_url: "{{ some_url }}"  # Replace with your notification endpoint
   
   tasks:

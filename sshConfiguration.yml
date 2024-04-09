@@ -1,0 +1,25 @@
+---
+- name: Secure SSH Configuration
+  hosts: all
+  become: true
+  vars: 
+    ansible_ssh_port: "{{ some_ssh_int }}"  # Change this to your custom SSH port
+  tasks:
+    - name: Disable password authentication
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^PasswordAuthentication'
+        line: 'PasswordAuthentication no'
+        backup: yes
+
+    - name: Disable root login
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^PermitRootLogin'
+        line: 'PermitRootLogin no'
+        backup: yes
+
+    - name: Restart SSH service
+      service:
+        name: sshd
+        state: restarted
