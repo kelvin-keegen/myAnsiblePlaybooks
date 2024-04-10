@@ -3,7 +3,8 @@
   hosts: all
   become: yes
   vars: 
-    ansible_ssh_port: "{{ some_ssh_int }}"  # Change this to your custom SSH port
+    new_ssh_port: "{{ some_ssh_int }}"  # Change this to your custom SSH port
+
   tasks:
     - name: Disable password authentication
       lineinfile:
@@ -18,6 +19,13 @@
         regexp: '^PermitRootLogin'
         line: 'PermitRootLogin no'
         backup: yes
+
+    - name: Change SSH port to new_ssh_port
+      replace:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?Port\s+.+$'
+        replace: "{{ new_ssh_port }}"
+      notify: Restart SSH
 
     - name: Restart SSH service
       service:
