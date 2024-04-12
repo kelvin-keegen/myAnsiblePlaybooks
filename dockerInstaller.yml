@@ -70,6 +70,17 @@
       reboot:
         reboot_timeout: 300
         when: ansible_reboot_pending
+        
+    - name: Check if system requires reboot
+      command: checkrestart
+      register: reboot_required
+      changed_when: false
+      ignore_errors: true
+
+    - name: Notify if reboot is required
+      debug:
+        msg: "Reboot is required on {{ inventory_hostname }}"
+      when: reboot_required.rc == 0
 
   handlers:
     - name: restart docker
