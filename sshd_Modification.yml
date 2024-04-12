@@ -24,7 +24,7 @@
       replace:
         path: /etc/ssh/sshd_config
         regexp: '^#?Port\s+.+$'
-        replace: "{{ new_ssh_port }}"
+        replace: "Port {{ new_ssh_port }}"
       notify: Restart SSH
 
   handlers:
