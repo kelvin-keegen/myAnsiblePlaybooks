@@ -1,6 +1,6 @@
 ## Instructions
 
-for a new system run the playbooks in the following order:
+for a newly installed system, run the playbooks in the following order:
 
 *corePackageInstaller.yml*
 
