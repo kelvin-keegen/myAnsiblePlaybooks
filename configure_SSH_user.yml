@@ -11,8 +11,8 @@
       file:
         path: "/home/{{ modded_user }}/.ssh"
         state: directory
-        owner: {{ modded_user }}
-        group: {{ modded_user }}
+        owner: "{{ modded_user }}"
+        group: "{{ modded_user }}"
         mode: "0700"
 
     - name: Add SSH public key to authorized_keys
