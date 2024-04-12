@@ -76,11 +76,6 @@
         msg: "Reboot is required on {{ inventory_hostname }}"
       when: reboot_required.stdout == "true"
 
-    - name: Send notification via curl
-      command: >
-        curl -H "X-Tags: white_check_mark,sunglasses,Server Configuration" -d "Docker has been successfully configured on: {{ ansible_hostname }}." {{ notification_url }}
-      ignore_errors: yes
-
   handlers:
     - name: restart docker
       service:
