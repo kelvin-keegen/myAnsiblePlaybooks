@@ -67,7 +67,7 @@
         append: yes
         
     - name: Run checkrestart command
-      command: "if sudo checkrestart | grep -q 'found'; then echo 'true'; else echo 'false'; fi"
+      command: "sh -c \"if sudo checkrestart | grep -q 'found'; then echo 'true'; else echo 'false'; fi\""
       register: reboot_required
       changed_when: false
 
