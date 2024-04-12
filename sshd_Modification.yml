@@ -27,7 +27,9 @@
         replace: "{{ new_ssh_port }}"
       notify: Restart SSH
 
-    - name: Restart SSH service
+  handlers:
+    - name: Restart SSH
       service:
         name: sshd
         state: restarted
+
