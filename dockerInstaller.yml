@@ -66,16 +66,15 @@
         groups: docker
         append: yes
         
-    - name: Check if system requires reboot
-      command: checkrestart
+    - name: Run checkrestart command
+      command: "if sudo checkrestart | grep -q 'found'; then echo 'true'; else echo 'false'; fi"
       register: reboot_required
       changed_when: false
-      ignore_errors: true
 
-    - name: Notify if reboot is required
+    - name: Send message if reboot is required
       debug:
         msg: "Reboot is required on {{ inventory_hostname }}"
-      when: reboot_required.rc == 0
+      when: reboot_required.stdout == "true"
 
   handlers:
     - name: restart docker

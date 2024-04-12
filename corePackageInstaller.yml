@@ -13,6 +13,7 @@
         state: present
       loop:
         - python3-pip
+        - debian-goodies
         - openssh-server
         - cockpit
         - speedtest-cli
