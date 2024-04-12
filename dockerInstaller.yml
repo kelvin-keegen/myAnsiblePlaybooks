@@ -1,0 +1,101 @@
+---
+- name: Install and Set Up Docker on Ubuntu 22.04
+  hosts: all
+  become: true
+  vars: 
+    ansible_ssh_port: "{{ some_ssh_int }}"
+    ansible_become_pass: "{{ random_pass }}"
+    notification_url: "{{ some_url }}"
+    other_user: "{{ normal_user }}"
+
+  tasks:
+    - name: Update apt packages cache
+      apt:
+        update_cache: yes
+
+    - name: Install prerequisites
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - apt-transport-https
+        - ca-certificates
+        - curl
+        - gnupg
+        - lsb-release
+
+    - name: Add Docker's official GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker repository
+      apt_repository:
+        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_lsb.codename }} stable
+        state: present
+
+    - name: Update apt packages cache (again with Docker repository)
+      apt:
+        update_cache: yes
+
+    - name: Install Docker
+      apt:
+        name: docker-ce
+        state: present
+
+    - name: Install Docker Compose
+      apt:
+        name: docker-compose
+        state: present
+
+    - name: Start and enable Docker service
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Add current user to Docker group
+      user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: yes
+
+    - name: Add Other user to Docker group
+      user:
+        name: "{{ other_user }}"
+        groups: docker
+        append: yes
+
+    - name: Reboot if needed
+      reboot:
+        when: ansible_reboot_pending
+
+  handlers:
+    - name: restart docker
+      service:
+        name: docker
+        state: restarted
+
+- name: Deploy Portainer container
+  hosts: localhost
+  tasks:
+    - name: Ensure portainer_data volume exists
+      docker_volume:
+        name: portainer_data
+        state: present
+
+    - name: Start Portainer container
+      docker_container:
+        name: portainer
+        image: portainer/portainer
+        ports:
+          - "9000:9000"
+        volumes:
+          - /var/run/docker.sock:/var/run/docker.sock
+          - portainer_data:/data
+        restart_policy: always
+        
+    - name: Send notification via curl
+      command: >
+        curl -H "X-Tags: white_check_mark,sunglasses,Server Configuration" -d "Docker has been successfully configured on: {{ ansible_hostname }}." {{ notification_url }}
+      ignore_errors: yes
