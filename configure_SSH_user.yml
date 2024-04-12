@@ -1,6 +1,6 @@
 ---
 - name: Add SSH public key to user
-  hosts: your_ubuntu_server
+  hosts: all
   become: yes
   vars:
     my_sweet_key: "{{ mykey }}"
