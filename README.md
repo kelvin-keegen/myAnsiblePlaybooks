@@ -1,13 +1,13 @@
-###Instructions
+### Instructions
 
 for a new system run the playbooks in the following order:
 
-corePackageInstaller.yml
+*corePackageInstaller.yml*
 
-userAddition.yml
+*userAddition.yml*
 
-configure_SSH_user.yml
+*configure_SSH_user.yml*
 
-sshd_Modification.yml
+*sshd_Modification.yml*
 
-packageUpdater.yml
+*packageUpdater.yml*
