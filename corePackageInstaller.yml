@@ -12,10 +12,14 @@
         name: "{{ item }}"
         state: present
       loop:
-        - python3-cryptography
+        - python3-pip
         - openssh-server
         - cockpit
         - speedtest-cli
         - nfs-common
         - htop
 
+    - name: Install Passlib via pip
+      pip:
+        name: passlib
+        state: present
