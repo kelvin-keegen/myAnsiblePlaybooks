@@ -13,7 +13,7 @@
       user:
         name: "{{ regular_user }}"
         shell: /bin/bash
-        password: "{{ {{ new_password }} | password_hash('sha512') }}"
+        password: "{{ new_password | password_hash('sha512') }}"
         append: yes
         groups: sudo
         createhome: yes
@@ -22,7 +22,7 @@
       user:
         name: "{{ devops_user }}"
         shell: /bin/bash
-        password: "{{ {{ new_password }} | password_hash('sha512') }}"
+        password: "{{ new_password | password_hash('sha512') }}"
         append: yes
         groups: sudo
         createhome: yes
