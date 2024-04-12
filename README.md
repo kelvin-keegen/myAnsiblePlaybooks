@@ -1,4 +1,4 @@
-### Instructions
+## Instructions
 
 for a new system run the playbooks in the following order:
 
