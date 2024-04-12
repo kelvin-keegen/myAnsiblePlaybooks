@@ -85,4 +85,4 @@
     - name: Send notification via curl
       command: >
         curl -H "X-Tags: white_check_mark,sunglasses,Server Configuration" -d "Docker has been successfully configured on: {{ ansible_hostname }}." {{ notification_url }}
-      ignore_errors: yes
+      ignore_errors: no
