@@ -83,12 +83,19 @@
         state: restarted
 
 - name: Deploy Portainer container
-  hosts: localhost
+  #hosts: localhost
   tasks:
     - name: Ensure portainer_data volume exists
       docker_volume:
         name: portainer_data
         state: present
+
+    - name: Create directory for Portainer data
+      file:
+        path: "/home/{{ normal_user }}/apps/portainer_data"
+        state: directory
+        mode: "0755"
+      become: yes
 
     - name: Start Portainer container
       docker_container:
@@ -98,7 +105,7 @@
           - "9000:9000"
         volumes:
           - /var/run/docker.sock:/var/run/docker.sock
-          - portainer_data:/data
+          - /home/{{ normal_user }}/apps/portainer_data:/data
         restart_policy: always
         
     - name: Send notification via curl
