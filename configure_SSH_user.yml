@@ -1,0 +1,22 @@
+---
+- name: Add SSH public key to user
+  hosts: your_ubuntu_server
+  become: yes
+  vars:
+    my_sweet_key: "{{ mykey }}"
+    modded_user: "{{ the_user }}"
+    
+  tasks:
+    - name: Ensure the SSH directory exists for the user
+      file:
+        path: "/home/{{ modded_user }}/.ssh"
+        state: directory
+        owner: {{ modded_user }}
+        group: {{ modded_user }}
+        mode: "0700"
+
+    - name: Add SSH public key to authorized_keys
+      authorized_key:
+        user: "{{ modded_user }}"
+        key: "{{ my_sweet_key }}"
+        state: present
