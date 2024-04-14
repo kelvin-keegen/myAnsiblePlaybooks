@@ -10,4 +10,10 @@ for a newly installed system, run the playbooks in the following order:
 
 *sshd_Modification.yml*
 
+*removeDefaultUser.yml*
+
 *packageUpdater.yml*
+
+### docker installer below
+
+*dockerInstaller.yml*
