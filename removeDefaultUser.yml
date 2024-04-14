@@ -1,6 +1,21 @@
+---
+- name: Reboot system before deleting user
+  hosts: all
+  become: yes
+  vars: 
+    ansible_ssh_port: "{{ some_ssh_int }}"
+    ansible_become_pass: "{{ random_pass }}"
+
+  tasks:
+    - name: Reboot the system
+      reboot:
+      async: 0
+      poll: 0
+      ignore_errors: yes
+
 - name: Delete a user in Ubuntu 22.04
   hosts: all
-  become: yes  # This is to execute the task with root privileges
+  become: yes
   vars: 
     ansible_ssh_port: "{{ some_ssh_int }}"
     ansible_become_pass: "{{ random_pass }}"
