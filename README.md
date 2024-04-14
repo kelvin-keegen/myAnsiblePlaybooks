@@ -6,7 +6,7 @@ Single playbook (All-in-one)
 
 *removeDefaultUser.yml* -> Default user cleanup
 
-for a newly installed system, run the playbooks in the following order:
+### For a newly installed system, run the playbooks in the following order:
 
 *corePackageInstaller.yml*
 
