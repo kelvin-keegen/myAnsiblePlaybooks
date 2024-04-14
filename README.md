@@ -2,6 +2,8 @@
 
 for a newly installed system, run the playbooks in the following order:
 
+All-in-one -> *SettingUpServer.yml*
+
 *corePackageInstaller.yml*
 
 *userAddition.yml*
