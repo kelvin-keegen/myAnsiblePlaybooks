@@ -1,6 +1,6 @@
-## Instructions
+# Instructions
 
-Single playbook (All-in-one)
+### Single playbook (All-in-one)
 
 *SettingUpServer.yml*
 
