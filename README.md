@@ -1,8 +1,9 @@
 ## Instructions
 
-for a newly installed system, run the playbooks in the following order:
+Single playbook (All-in-one)
+*SettingUpServer.yml*
 
-All-in-one -> *SettingUpServer.yml*
+for a newly installed system, run the playbooks in the following order:
 
 *corePackageInstaller.yml*
 
