@@ -11,7 +11,6 @@
     new_ssh_port: "{{ some_ssh_int }}"
     ansible_ssh_port: "{{ some_ssh_int }}"
     ansible_become_pass: "{{ random_pass }}"
-    username: "{{ defaultUser }}"
     other_user: "{{ normal_user }}"
     notification_url: "{{ some_url }}"
     
@@ -41,3 +40,173 @@
         state: present
         
 #userAddition.yml
+    - name: Create regular_user with sudo privileges and set default shell to bash
+      user:
+        name: "{{ regular_user }}"
+        shell: /bin/bash
+        password: "{{ new_password | password_hash('sha512_crypt') }}"
+        append: yes
+        groups: sudo
+        createhome: yes
+
+    - name: Create apps directory
+      file:
+        path: /home/"{{ regular_user }}"/apps
+        state: directory
+        owner: "{{ regular_user }}"
+        group: "{{ regular_user }}"
+        mode: "0755"
+
+    - name: Create scripts directory
+      file:
+        path: /home/"{{ regular_user }}"/scripts
+        state: directory
+        owner: "{{ regular_user }}"
+        group: "{{ regular_user }}"
+        mode: "0755"
+
+    - name: Create devops_user with sudo privileges and set default shell to bash
+      user:
+        name: "{{ devops_user }}"
+        shell: /bin/bash
+        password: "{{ new_password | password_hash('sha512_crypt') }}"
+        append: yes
+        groups: sudo
+        createhome: yes
+
+#configure_SSH_user.yml
+    - name: Ensure the SSH directory exists for the user
+      file:
+        path: "/home/{{ modded_user }}/.ssh"
+        state: directory
+        owner: "{{ modded_user }}"
+        group: "{{ modded_user }}"
+        mode: "0700"
+
+    - name: Add SSH public key to authorized_keys
+      authorized_key:
+        user: "{{ modded_user }}"
+        key: "{{ my_sweet_key }}"
+        state: present
+        
+#sshd_Modification.yml
+    - name: Disable password authentication
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^PasswordAuthentication'
+        line: 'PasswordAuthentication no'
+        backup: yes
+
+    - name: Disable root login
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^PermitRootLogin'
+        line: 'PermitRootLogin no'
+        backup: yes
+
+    - name: Change SSH port to new_ssh_port
+      replace:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?Port\s+.+$'
+        replace: "Port {{ new_ssh_port }}"
+      notify: Restart SSH
+      
+#packageUpdater.yml
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        
+    - name: Upgrade all packages
+      apt:
+        upgrade: yes
+        autoclean: yes
+      register: upgrade_result
+
+    - name: Notify if reboot is required
+      debug:
+        msg: "Reboot is required on {{ inventory_hostname }}"
+      # uri:
+        # url: "{{ notification_url }}"
+        # method: POST
+        # body: "Reboot required on {{ ansible_hostname }}. Please check."
+        # status_code: 200
+      when: upgrade_result.reboot_required | default(false)
+      
+#dockerInstaller.yml
+    - name: Update apt packages cache
+      apt:
+        update_cache: yes
+
+    - name: Install prerequisites
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - apt-transport-https
+        - ca-certificates
+        - curl
+        - gnupg
+        - lsb-release
+
+    - name: Add Docker's official GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker repository
+      apt_repository:
+        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_lsb.codename }} stable
+        state: present
+
+    - name: Update apt packages cache (again with Docker repository)
+      apt:
+        update_cache: yes
+
+    - name: Install Docker
+      apt:
+        name: docker-ce
+        state: present
+
+    - name: Install Docker Compose
+      apt:
+        name: docker-compose
+        state: present
+
+    - name: Start and enable Docker service
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Add current user to Docker group
+      user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: yes
+
+    - name: Add Other user to Docker group
+      user:
+        name: "{{ other_user }}"
+        groups: docker
+        append: yes
+        
+    - name: Run checkrestart command
+      command: "sh -c \"if sudo checkrestart | grep -q 'found'; then echo 'true'; else echo 'false'; fi\""
+      register: reboot_required
+      changed_when: false
+
+    - name: Send message if reboot is required
+      debug:
+        msg: "Reboot is required on {{ inventory_hostname }}"
+      when: reboot_required.stdout == "true"
+
+  handlers:
+    - name: restart docker
+      service:
+        name: docker
+        state: restarted
+        
+    - name: Restart SSH
+      service:
+        name: sshd
+        state: restarted
