@@ -18,6 +18,22 @@
         groups: sudo
         createhome: yes
 
+    - name: Create apps directory
+      file:
+        path: /home/"{{ regular_user }}"/apps
+        state: directory
+        owner: "{{ regular_user }}"
+        group: "{{ regular_user }}"
+        mode: "0755"
+
+    - name: Create scripts directory
+      file:
+        path: /home/"{{ regular_user }}"/scripts
+        state: directory
+        owner: "{{ regular_user }}"
+        group: "{{ regular_user }}"
+        mode: "0755"
+
     - name: Create devops_user with sudo privileges and set default shell to bash
       user:
         name: "{{ devops_user }}"
