@@ -3,6 +3,7 @@
 Single playbook (All-in-one)
 
 *SettingUpServer.yml*
+*removeDefaultUser.yml* -> Default user cleanup
 
 for a newly installed system, run the playbooks in the following order:
 
