@@ -47,7 +47,7 @@
 
     - name: Create apps directory
       file:
-        path: /home/"{{ regular_user }}"/apps
+        path: "/home/{{ regular_user }}/apps"
         state: directory
         owner: "{{ regular_user }}"
         group: "{{ regular_user }}"
@@ -55,7 +55,7 @@
 
     - name: Create scripts directory
       file:
-        path: /home/"{{ regular_user }}"/scripts
+        path: "/home/{{ regular_user }}/scripts"
         state: directory
         owner: "{{ regular_user }}"
         group: "{{ regular_user }}"

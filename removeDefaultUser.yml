@@ -1,5 +1,5 @@
 ---
-- name: Reboot system before deleting user
+- name: Deleting defaultUser
   hosts: all
   become: yes
   vars: 
