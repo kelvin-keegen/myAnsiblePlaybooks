@@ -5,7 +5,7 @@
   vars: 
     ansible_ssh_port: "{{ some_ssh_int }}"  # Change this to your custom SSH port
     ansible_become_pass: "{{ random_pass }}"  # Replace with your root password
-    notification_url: "{{ some_url }}"  # Replace with your notification endpoint
+    #notification_url: "{{ some_url }}"  # Replace with your notification endpoint
   
   tasks:
     - name: Update apt cache
@@ -19,9 +19,11 @@
       register: upgrade_result
 
     - name: Notify if reboot is required
-      uri:
-        url: "{{ notification_url }}"
-        method: POST
-        body: "Reboot required on {{ ansible_hostname }}. Please check."
-        status_code: 200
+      debug:
+        msg: "Reboot is required on {{ inventory_hostname }}"
+      # uri:
+        # url: "{{ notification_url }}"
+        # method: POST
+        # body: "Reboot required on {{ ansible_hostname }}. Please check."
+        # status_code: 200
       when: upgrade_result.reboot_required | default(false)

@@ -1,0 +1,20 @@
+- name: Delete a user in Ubuntu 22.04
+  hosts: all
+  become: yes  # This is to execute the task with root privileges
+  vars: 
+    ansible_ssh_port: "{{ some_ssh_int }}"
+    ansible_become_pass: "{{ random_pass }}"
+    username: "{{ defaultUser }}"
+  
+  tasks:
+    - name: Ensure the user exists before deletion
+      command: id {{ username }}
+      register: user_exists
+      ignore_errors: yes
+
+    - name: Delete the user if exists
+      user:
+        name: "{{ username }}"
+        state: absent
+        remove: yes  # This removes the user's home directory
+      when: user_exists.rc == 0
