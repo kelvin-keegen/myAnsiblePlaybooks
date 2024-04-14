@@ -3,15 +3,11 @@
   hosts: all
   become: yes
   vars:
-    regular_user: "{{ some_user }}"
-    devops_user: "{{ some_dev_user }}"
+    regular_user: "{{ normal_user }}"
+    devops_user: "{{ devops_user }}"
     new_password: "{{ random_pass }}"
     my_sweet_key: "{{ mykey }}"
-    modded_user: "{{ the_user }}"
     new_ssh_port: "{{ some_ssh_int }}"
-    ansible_ssh_port: "{{ some_ssh_int }}"
-    ansible_become_pass: "{{ random_pass }}"
-    other_user: "{{ normal_user }}"
     notification_url: "{{ some_url }}"
     
   tasks:
@@ -75,17 +71,17 @@
         createhome: yes
 
 #configure_SSH_user.yml
-    - name: Ensure the SSH directory exists for the user
+    - name: Ensure the SSH directory exists for the devops_user
       file:
-        path: "/home/{{ modded_user }}/.ssh"
+        path: "/home/{{ devops_user }}/.ssh"
         state: directory
-        owner: "{{ modded_user }}"
-        group: "{{ modded_user }}"
+        owner: "{{ devops_user }}"
+        group: "{{ devops_user }}"
         mode: "0700"
 
     - name: Add SSH public key to authorized_keys
       authorized_key:
-        user: "{{ modded_user }}"
+        user: "{{ devops_user }}"
         key: "{{ my_sweet_key }}"
         state: present
         
@@ -178,15 +174,15 @@
         state: started
         enabled: yes
 
-    - name: Add current user to Docker group
+    - name: Add regular_user to Docker group
       user:
-        name: "{{ ansible_user }}"
+        name: "{{ regular_user }}"
         groups: docker
         append: yes
 
-    - name: Add Other user to Docker group
+    - name: Add devops_user to Docker group
       user:
-        name: "{{ other_user }}"
+        name: "{{ devops_user }}"
         groups: docker
         append: yes
         
