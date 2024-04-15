@@ -21,6 +21,7 @@
         - nfs-common
         - htop
         - neofetch
+        - net-tools
 
     - name: Install Passlib via pip
       pip:
