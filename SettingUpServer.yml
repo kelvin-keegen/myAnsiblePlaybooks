@@ -7,6 +7,7 @@
     devops_user: "{{ devops_user }}"
     new_password: "{{ random_pass }}"
     my_sweet_key: "{{ mykey }}"
+    my_sweet_key2: "{{ mykey2 }}"
     new_ssh_port: "{{ some_ssh_int }}"
     notification_url: "{{ some_url }}"
     
@@ -29,6 +30,9 @@
         - nfs-common
         - htop
         - neofetch
+        - net-tools
+        - wireguard
+        - resolvconf
 
     - name: Install Passlib via pip
       pip:
@@ -83,6 +87,20 @@
       authorized_key:
         user: "{{ devops_user }}"
         key: "{{ my_sweet_key }}"
+        state: present
+        
+    - name: Ensure the SSH directory exists for the regular_user
+      file:
+        path: "/home/{{ regular_user }}/.ssh"
+        state: directory
+        owner: "{{ regular_user }}"
+        group: "{{ regular_user }}"
+        mode: "0700"
+
+    - name: Add SSH public key to authorized_keys
+      authorized_key:
+        user: "{{ regular_user }}"
+        key: "{{ my_sweet_key2 }}"
         state: present
         
 #sshd_Modification.yml

@@ -22,6 +22,8 @@
         - htop
         - neofetch
         - net-tools
+        - wireguard
+        - resolvconf
 
     - name: Install Passlib via pip
       pip:
