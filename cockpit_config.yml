@@ -26,11 +26,14 @@
       # become_user: "{{ cockpit_user }}"
       # command: google-authenticator --quiet
       
+    # - name: Generate TOTP keys for the specified user
+      # expect:
+        # command: su -c "google-authenticator --quiet" "{{ cockpit_user }}"
+        # responses:
+          # Password: "{{ ansible_become_pass }}"
     - name: Generate TOTP keys for the specified user
-      expect:
-        command: su -c "google-authenticator --quiet" "{{ cockpit_user }}"
-        responses:
-          Password: "{{ ansible_become_pass }}"
+      command: google-authenticator --quiet --time-based --disallow-reuse --no-rate-limit
+      become_user: "{{ cockpit_user }}"
 
   handlers:
     - name: Restart Cockpit service if PAM configuration changed
