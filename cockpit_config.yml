@@ -1,0 +1,43 @@
+---
+- name: Configure TOTP authentication for Cockpit
+  hosts: all
+  become: yes
+  vars:
+    ansible_ssh_port: "{{ some_ssh_int }}"
+    ansible_become_pass: "{{ random_pass }}"
+    user1: "{{ normal_user }}"
+    user2: "{{ devops_user }}"
+    users:
+      - user1
+      - user2
+      # Add more users as needed
+
+  tasks:
+    - name: Install required packages
+      apt:
+        name: libpam-google-authenticator
+        state: present
+
+    - name: Add TOTP authentication to PAM configuration for Cockpit
+      lineinfile:
+        path: /etc/pam.d/cockpit
+        line: 'auth required pam_google_authenticator.so'
+        insertbefore: BOF
+
+    - name: Restart Cockpit service
+      systemd:
+        name: cockpit.socket
+        state: restarted
+
+    - name: Generate TOTP keys for users
+      become_user: "{{ item }}"
+      command: google-authenticator --quiet
+      loop: "{{ users }}"
+      when: item != 'root'   
+
+  handlers:
+    - name: Restart Cockpit service if PAM configuration changed
+      systemd:
+        name: cockpit.socket
+        state: restarted
+      listen: "PAM configuration changed"

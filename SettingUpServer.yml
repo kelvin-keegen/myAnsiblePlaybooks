@@ -10,6 +10,10 @@
     my_sweet_key2: "{{ mykey2 }}"
     new_ssh_port: "{{ some_ssh_int }}"
     notification_url: "{{ some_url }}"
+    cockpit_users: # cockpit Users
+      - regular_user
+      - devops_user
+      # Add more users as needed
     
   tasks:
     - name: Update apt package cache
@@ -25,7 +29,8 @@
         - python3-requests
         - debian-goodies
         - openssh-server
-        #- cockpit
+        - cockpit
+        - libpam-google-authenticator
         - speedtest-cli
         - nfs-common
         - htop
@@ -102,6 +107,24 @@
         user: "{{ regular_user }}"
         key: "{{ my_sweet_key2 }}"
         state: present
+
+# Cockpit_configuration        
+    - name: Add TOTP authentication to PAM configuration for Cockpit
+      lineinfile:
+        path: /etc/pam.d/cockpit
+        line: 'auth required pam_google_authenticator.so'
+        insertbefore: BOF
+
+    - name: Restart Cockpit service
+      systemd:
+        name: cockpit.socket
+        state: restarted
+
+    - name: Generate TOTP keys for users
+      become_user: "{{ item }}"
+      command: google-authenticator --quiet
+      loop: "{{ cockpit_users }}"
+      when: item != 'root'
         
 #sshd_Modification.yml
     - name: Disable password authentication
@@ -177,16 +200,6 @@
         repo: "{{ docker_repo_url }}"
         state: present
 
-    # - name: Add Docker's official GPG key
-      # apt_key:
-        # url: https://download.docker.com/linux/ubuntu/gpg
-        # state: present
-
-    # - name: Add Docker repository
-      # apt_repository:
-        # repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_lsb.codename }} stable
-        # state: present
-
     - name: Update apt packages cache (again with Docker repository)
       apt:
         update_cache: yes
@@ -235,6 +248,12 @@
         name: docker
         state: restarted
         
+    - name: Restart Cockpit service if PAM configuration changed
+      systemd:
+        name: cockpit.socket
+        state: restarted
+      listen: "PAM configuration changed"
+      
     - name: Restart SSH
       service:
         name: sshd
