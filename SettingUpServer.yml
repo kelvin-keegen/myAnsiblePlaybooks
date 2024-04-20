@@ -117,10 +117,6 @@
       systemd:
         name: cockpit.socket
         state: restarted
-
-    - name: Generate TOTP keys for the specified user
-      become_user: "{{ regular_user }}"
-      command: google-authenticator --quiet
         
 #sshd_Modification.yml
     - name: Disable password authentication
