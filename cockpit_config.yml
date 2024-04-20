@@ -22,9 +22,15 @@
         name: cockpit.socket
         state: restarted
 
+    # - name: Generate TOTP keys for the specified user
+      # become_user: "{{ cockpit_user }}"
+      # command: google-authenticator --quiet
+      
     - name: Generate TOTP keys for the specified user
-      become_user: "{{ cockpit_user }}"
-      command: google-authenticator --quiet
+      expect:
+        command: su -c "google-authenticator --quiet" "{{ cockpit_user }}"
+        responses:
+          Password: "{{ ansible_become_pass }}"
 
   handlers:
     - name: Restart Cockpit service if PAM configuration changed
