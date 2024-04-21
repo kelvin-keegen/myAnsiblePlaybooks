@@ -111,7 +111,8 @@
         line: |
           auth required pam_google_authenticator.so
           auth required pam_succeed_if.so user in [{{ regular_user }}]
-        insertbefore: BOF
+          auth required pam_permit.so
+        insertafter: EOF
 
     - name: Restart Cockpit service
       systemd:
