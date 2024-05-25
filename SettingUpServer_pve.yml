@@ -2,6 +2,7 @@
 - name: Install necessary packages on Ubuntu 22.04 LTS
   hosts: all
   become: yes
+  become_user: root
   vars:
     regular_user: "{{ normal_user }}"
     devops_user: "{{ devops_user }}"
