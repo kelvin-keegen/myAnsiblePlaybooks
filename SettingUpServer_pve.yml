@@ -13,10 +13,9 @@
     notification_url: "{{ some_url }}"
     
   tasks:
-    # - name: Update apt package cache
-      # apt:
-        # update_cache: yes
-      # become: yes
+    - name: Update apt package cache
+      apt:
+        update_cache: yes
 
     - name: Install core packages
       apt:
