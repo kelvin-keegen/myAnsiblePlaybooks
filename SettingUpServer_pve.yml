@@ -2,9 +2,8 @@
 - name: Install necessary packages on Ubuntu 22.04 LTS
   hosts: all
   become: yes
-  #Configure Ansible Semaphore to use sudo (recommended)
-  environment:
-    BECOME_METHOD: sudo
+  become_user: root
+
   vars:
     regular_user: "{{ normal_user }}"
     devops_user: "{{ devops_user }}"
