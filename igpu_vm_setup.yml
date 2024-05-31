@@ -35,7 +35,7 @@
           - intel-opencl-icd
           - i965-va-driver
           - libva2
-          - libva-drm
+          - libva-drm2
           - libva-x11-2
           - libvpl2
           - onevpl-tools
