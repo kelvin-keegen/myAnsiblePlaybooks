@@ -42,3 +42,9 @@
   handlers:
     - name: Update grub
       ansible.builtin.command: update-grub
+
+    - name: Reboot the system
+      reboot:
+      async: 0
+      poll: 0
+      ignore_errors: yes
