@@ -33,7 +33,10 @@
           - intel-gpu-tools
           - ocl-icd-libopencl1
           - intel-opencl-icd
-          - firmware-linux-nonfree
+          - i965-va-driver
+          - libva2
+          - libva-drm
+          - libva-x11-2
           - libvpl2
           - onevpl-tools
   handlers:
