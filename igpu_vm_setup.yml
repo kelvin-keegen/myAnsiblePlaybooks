@@ -1,0 +1,34 @@
+- name: Set up GPU
+  hosts: pve-docker
+  tasks:
+    - name: Set VA-API driver
+      ansible.builtin.lineinfile:
+        path: /etc/environment
+        regexp: '^LIBVA_DRIVER_NAME='
+        line: LIBVA_DRIVER_NAME=iHD
+    - name: Add cmdline default
+      ansible.builtin.lineinfile:
+        path: /etc/default/grub.d/cmdline_default.cfg
+        regexp: '^GRUB_CMDLINE_LINUX_DEFAULT='
+        line: 'GRUB_CMDLINE_LINUX_DEFAULT="quiet i915.enable_hangcheck=N intel_idle.preferred_cstates=2 nosmt mitigations=off transparent_hugepage=always"'
+        mode: '644'
+        state: present
+        create: true
+      notify:
+        - Update grub
+    - name: Install drivers
+      ansible.builtin.apt:
+        update_cache: true
+        pkg:
+          - clinfo
+          - vainfo
+          - intel-media-va-driver-non-free
+          - intel-gpu-tools
+          - ocl-icd-libopencl1
+          - intel-opencl-icd
+          - firmware-linux-nonfree
+          - libvpl2
+          - onevpl-tools
+  handlers:
+    - name: Update grub
+      ansible.builtin.command: update-grub
