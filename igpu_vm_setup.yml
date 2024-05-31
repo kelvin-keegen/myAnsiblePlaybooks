@@ -1,5 +1,5 @@
 ---
-- name: Update Ubuntu servers and notify if reboot is required
+- name: Setting up iGPU Ubuntu 22.04 VM
   hosts: all
   become: yes  # This enables privilege escalation to root
   become_user: root
