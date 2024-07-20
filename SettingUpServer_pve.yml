@@ -42,6 +42,11 @@
       pip:
         name: passlib
         state: present
+
+    - name: Install Psutil via pip
+      pip:
+        name: psutil
+        state: present
         
 #userAddition.yml
     - name: Create regular_user with sudo privileges and set default shell to bash
