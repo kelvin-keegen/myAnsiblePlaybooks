@@ -1,0 +1,29 @@
+---
+- name: Create directory, download multiple files, and make them executable
+  hosts: all
+  become: yes
+  vars:
+    dir_path: "/path/to/dir"  # Update this path
+    dir_name: "my_directory"
+    script_urls: "{{ SCRIPT_URLS.split(',') }}"  # Use the SCRIPT_URLS variable from Semaphore and split it into a list
+
+  tasks:
+    - name: Create the directory
+      file:
+        path: "{{ dir_path }}/{{ dir_name }}"
+        state: directory
+        mode: '0755'
+
+    - name: Download script files using wget
+      get_url:
+        url: "{{ item }}"
+        dest: "{{ dir_path }}/{{ dir_name }}/{{ item | basename }}"
+        mode: '0644'
+      loop: "{{ script_urls }}"
+
+    - name: Make the downloaded files executable
+      file:
+        path: "{{ dir_path }}/{{ dir_name }}/{{ item | basename }}"
+        mode: '0755'
+        state: file
+      loop: "{{ script_urls }}"
