@@ -1,0 +1,32 @@
+---
+- name: Create directory, download multiple files, and make them executable
+  hosts: all
+  become: yes
+  vars:
+    ansible_interpreter: /usr/bin/micropython
+    ansible_ssh_port: "{{ some_ssh_int }}"  # Change this to your custom SSH port
+    ansible_become_pass: "{{ random_pass }}"  # Replace with your root password
+    dir_path: "{{ script_path }}"  # Update this path
+    dir_name: "{{ script_directory }}"
+    script_urls: "{{ SCRIPT_URLS }}"  # Directly use the SCRIPT_URLS variable from Semaphore
+
+  tasks:
+    - name: Create the directory
+      file:
+        path: "{{ dir_path }}/{{ dir_name }}"
+        state: directory
+        mode: '0755'
+
+    - name: Download script files using wget
+      get_url:
+        url: "{{ item }}"
+        dest: "{{ dir_path }}/{{ dir_name }}/{{ item | basename }}"
+        mode: '0644'
+      loop: "{{ script_urls }}"
+
+    - name: Make the downloaded files executable
+      file:
+        path: "{{ dir_path }}/{{ dir_name }}/{{ item | basename }}"
+        mode: '0755'
+        state: file
+      loop: "{{ script_urls }}"
