@@ -37,6 +37,7 @@
         - wireguard
         - resolvconf
         - qemu-guest-agent
+        - git
 
     - name: Install Passlib via pip
       pip:
