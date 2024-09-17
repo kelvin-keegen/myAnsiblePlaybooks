@@ -37,10 +37,16 @@
         - wireguard
         - resolvconf
         - qemu-guest-agent
+        - git
 
     - name: Install Passlib via pip
       pip:
         name: passlib
+        state: present
+
+    - name: Install Psutil via pip
+      pip:
+        name: psutil
         state: present
         
 #userAddition.yml
