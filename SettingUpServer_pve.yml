@@ -25,6 +25,8 @@
       loop:
         - python3-pip
         - python3-requests
+        - python3-passlib
+        - python3-psutil
         - debian-goodies
         - openssh-server
         - cockpit
@@ -38,16 +40,6 @@
         - resolvconf
         - qemu-guest-agent
         - git
-
-    - name: Install Passlib via pip
-      pip:
-        name: passlib
-        state: present
-
-    - name: Install Psutil via pip
-      pip:
-        name: psutil
-        state: present
         
 #userAddition.yml
     - name: Create regular_user with sudo privileges and set default shell to bash
@@ -258,5 +250,5 @@
       
     - name: Restart SSH
       service:
-        name: sshd
+        name: ssh
         state: restarted
