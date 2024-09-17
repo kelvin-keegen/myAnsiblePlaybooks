@@ -1,0 +1,38 @@
+---
+- name: Setting up iGPU Ubuntu
+  hosts: all
+  become: yes  # This enables privilege escalation to root
+  become_user: root
+  vars: 
+    ansible_ssh_port: "{{ some_ssh_int }}"  # Change this to your custom SSH port
+    ansible_become_pass: "{{ random_pass }}"  # Replace with your root password
+    #notification_url: "{{ some_url }}"  # Replace with your notification endpoint
+  tasks:
+    - name: Set VA-API driver
+      ansible.builtin.lineinfile:
+        path: /etc/environment
+        regexp: '^LIBVA_DRIVER_NAME='
+        line: LIBVA_DRIVER_NAME=iHD
+
+    - name: Install drivers
+      ansible.builtin.apt:
+        update_cache: true
+        pkg:
+          - clinfo
+          - vainfo
+          - intel-media-va-driver-non-free
+          - intel-gpu-tools
+          - ocl-icd-libopencl1
+          - intel-opencl-icd
+          - i965-va-driver
+          - libva2
+          - libva-drm2
+          - libva-x11-2
+          - libvpl2
+          - onevpl-tools
+  handlers:
+    - name: Reboot the system
+      reboot:
+      async: 0
+      poll: 0
+      ignore_errors: yes
