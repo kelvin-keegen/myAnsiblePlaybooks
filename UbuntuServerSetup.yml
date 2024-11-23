@@ -1,0 +1,244 @@
+---
+- name: Install necessary packages on Ubuntu 22.04 LTS
+  hosts: all
+  become: yes
+  become_user: root
+
+  vars:
+    regular_user: "{{ normal_user }}"
+    devops_user: "{{ devops_user }}"
+    new_password: "{{ random_pass }}"
+    my_sweet_key: "{{ mykey }}"
+    my_sweet_key2: "{{ mykey2 }}"
+    new_ssh_port: "{{ some_ssh_int }}"
+    notification_url: "{{ some_url }}"
+    
+  tasks:
+    - name: Update apt package cache
+      apt:
+        update_cache: yes
+
+    - name: Install core packages
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - python3-pip
+        - python3-requests
+        - python3-passlib
+        - python3-psutil
+        - debian-goodies
+        - openssh-server
+        - cockpit
+        - libpam-google-authenticator
+        - speedtest-cli
+        - nfs-common
+        - htop
+        - neofetch
+        - net-tools
+        - wireguard
+        - resolvconf
+        - qemu-guest-agent
+        - git
+        
+#userAddition.yml
+    - name: Create regular_user with sudo privileges and set default shell to bash
+      user:
+        name: "{{ regular_user }}"
+        shell: /bin/bash
+        password: "{{ new_password | password_hash('sha512_crypt') }}"
+        append: yes
+        groups: sudo
+        createhome: yes
+
+    - name: Create apps directory
+      file:
+        path: "/home/{{ regular_user }}/apps"
+        state: directory
+        owner: "{{ regular_user }}"
+        group: "{{ regular_user }}"
+        mode: "0755"
+
+    - name: Create scripts directory
+      file:
+        path: "/home/{{ regular_user }}/scripts"
+        state: directory
+        owner: "{{ regular_user }}"
+        group: "{{ regular_user }}"
+        mode: "0755"
+
+    - name: Create devops_user with sudo privileges and set default shell to bash
+      user:
+        name: "{{ devops_user }}"
+        shell: /bin/bash
+        password: "{{ new_password | password_hash('sha512_crypt') }}"
+        append: yes
+        groups: sudo
+        createhome: yes
+
+#configure_SSH_user.yml
+    - name: Ensure the SSH directory exists for the devops_user
+      file:
+        path: "/home/{{ devops_user }}/.ssh"
+        state: directory
+        owner: "{{ devops_user }}"
+        group: "{{ devops_user }}"
+        mode: "0700"
+
+    - name: Add SSH public key to authorized_keys
+      authorized_key:
+        user: "{{ devops_user }}"
+        key: "{{ my_sweet_key }}"
+        state: present
+        
+    - name: Ensure the SSH directory exists for the regular_user
+      file:
+        path: "/home/{{ regular_user }}/.ssh"
+        state: directory
+        owner: "{{ regular_user }}"
+        group: "{{ regular_user }}"
+        mode: "0700"
+
+    - name: Add SSH public key to authorized_keys
+      authorized_key:
+        user: "{{ regular_user }}"
+        key: "{{ my_sweet_key2 }}"
+        state: present
+
+# Cockpit_configuration        
+    - name: Add TOTP authentication to PAM configuration for Cockpit
+      lineinfile:
+        path: /etc/pam.d/cockpit
+        line: |
+          auth required pam_google_authenticator.so
+          auth required pam_succeed_if.so user in [{{ regular_user }}]
+          auth required pam_permit.so
+        insertafter: EOF
+
+    - name: Restart Cockpit service
+      systemd:
+        name: cockpit.socket
+        state: restarted
+        
+#sshd_Modification.yml
+    - name: Disable password authentication
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^PasswordAuthentication'
+        line: 'PasswordAuthentication no'
+        backup: yes
+
+    - name: Disable root login
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^PermitRootLogin'
+        line: 'PermitRootLogin no'
+        backup: yes
+
+    - name: Change SSH port to new_ssh_port
+      replace:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?Port\s+.+$'
+        replace: "Port {{ new_ssh_port }}"
+      notify: Restart SSH
+      
+#packageUpdater.yml
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        
+    - name: Upgrade all packages
+      apt:
+        upgrade: yes
+        autoclean: yes
+      register: upgrade_result
+      
+#dockerInstaller.yml
+    - name: Update apt packages cache
+      apt:
+        update_cache: yes
+
+    - name: Install prerequisites
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - apt-transport-https
+        - ca-certificates
+        - curl
+        - gnupg
+        - lsb-release
+
+  # Add conditional task to determine architecture and set Docker repository accordingly
+    - name: Add Docker repository based on architecture
+      set_fact:
+        docker_repo_url: "{% if ansible_architecture == 'x86_64' %}deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_lsb.codename }} stable{% elif ansible_architecture == 'aarch64' %}deb [arch=arm64] https://download.docker.com/linux/ubuntu {{ ansible_lsb.codename }} stable{% endif %}"
+
+    - name: Add Docker's official GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker repository
+      apt_repository:
+        repo: "{{ docker_repo_url }}"
+        state: present
+
+    - name: Update apt packages cache (again with Docker repository)
+      apt:
+        update_cache: yes
+
+    - name: Install Docker
+      apt:
+        name: docker-ce
+        state: present
+
+    - name: Install Docker Compose
+      apt:
+        name: docker-compose
+        state: present
+
+    - name: Start and enable Docker service
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Add regular_user to Docker group
+      user:
+        name: "{{ regular_user }}"
+        groups: docker
+        append: yes
+
+    - name: Add devops_user to Docker group
+      user:
+        name: "{{ devops_user }}"
+        groups: docker
+        append: yes
+
+    - name: Get the SSH service name
+      command: systemctl list-units --type=service | grep -E 'ssh'
+      register: ssh_services
+      changed_when: false
+      failed_when: false
+
+    - name: Set SSH service name variable
+      set_fact:
+        ssh_service_name: "{{ ssh_services.stdout_lines[0].split()[0] if ssh_services.stdout_lines | length > 0 else 'ssh' }}"
+        
+  handlers:
+    - name: restart docker
+      service:
+        name: docker
+        state: restarted
+        
+    - name: Restart Cockpit service if PAM configuration changed
+      systemd:
+        name: cockpit.socket
+        state: restarted
+      listen: "PAM configuration changed"
+      
+    - name: Restart SSH service
+      service:
+        name: "{{ ssh_service_name }}"
+        state: restarted
