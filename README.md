@@ -4,6 +4,8 @@
 
 *SettingUpServer.yml*
 
+*UbuntuServerSetup.yml* -> for default ubuntu images
+
 *removeDefaultUser.yml* -> Default user cleanup
 
 ### For a newly installed system, run the playbooks in the following order:
