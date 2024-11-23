@@ -12,7 +12,6 @@
     - name: Update apt cache
       apt:
         update_cache: yes
-      become: yes
       register: apt_update_result
       ignore_errors: yes
 
