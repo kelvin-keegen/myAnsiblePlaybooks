@@ -1,0 +1,75 @@
+---
+- name: Setup Timeshift for Automated Backups
+  hosts: all
+  become: yes
+  become_user: root
+  vars:
+    ansible_ssh_port: "{{ some_ssh_int }}"
+    ansible_become_pass: "{{ random_pass }}"
+    regular_user: "{{ normal_user }}"  # User who owns the backup directory
+    backup_dir: "/home/{{ regular_user }}/timeshift_backups"  # Directory for Timeshift snapshots
+    backup_script: "/home/{{ regular_user }}/scripts/timeshift_backup.sh"  # Path to the backup script
+    time_hour: "{{ cron_hour }}"
+    time_minute: "{{ cron_minute }}"
+    cron_time: "{{ time_minute }} {{ time_hour }} * * *"  # Cron schedule (daily)
+    comment: "Scheduled daily backup"  # Comment for Timeshift snapshots
+
+  tasks:
+    - name: Ensure Timeshift is installed
+      apt:
+        name: timeshift
+        state: present
+        update_cache: yes
+
+    - name: Create timeshift backup directory
+      file:
+        path: "{{ backup_dir }}"
+        state: directory
+        owner: "{{ regular_user }}"
+        group: "{{ regular_user }}"
+        mode: "0755"
+
+    - name: Configure Timeshift with the backup directory
+      command: timeshift --snapshot-device="{{ backup_dir }}" --yes --tags D
+      register: timeshift_setup
+      failed_when: "'Failed' in timeshift_setup.stderr"
+
+    - name: Create Timeshift backup script
+      copy:
+        dest: "{{ backup_script }}"
+        content: |
+          #!/bin/bash
+          # Trigger a Timeshift snapshot
+          timeshift --create --comments "{{ comment }}" --tags D
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Schedule daily backup with cron
+      cron:
+        name: "Daily Timeshift Backup"
+        user: root
+        minute: "{{ time_minute }}"
+        hour: "{{ time_hour }}"
+        job: "{{ backup_script }}"
+
+    - name: Verify that the backup script works (optional)
+      command: "{{ backup_script }}"
+      register: test_backup
+      failed_when: "'Failed' in test_backup.stderr"
+      when: test_backup is not defined
+
+    - name: Verify that backup directory contains a snapshot
+      find:
+        paths: "{{ backup_dir }}"
+        patterns: "*_*_*"  # Match default Timeshift snapshot naming convention
+      register: snapshots
+
+    - name: Fail if no snapshots are found
+      fail:
+        msg: "No Timeshift snapshots were created!"
+      when: snapshots.matched == 0
+
+    - name: Display success message
+      debug:
+        msg: "Timeshift setup complete! Snapshots will be created daily at {{ cron_time }} in {{ backup_dir }}."
