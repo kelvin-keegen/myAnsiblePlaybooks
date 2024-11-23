@@ -12,7 +12,10 @@
     time_hour: "{{ cron_hour }}"
     time_minute: "{{ cron_minute }}"
     cron_time: "{{ time_minute }} {{ time_hour }} * * *"  # Cron schedule (daily)
-    comment: "Scheduled daily backup"  # Comment for Timeshift snapshots
+    comment: "Daily HomeDocker_Server backup"  # Comment for Timeshift snapshots
+    nfs_server: "{{ nas_ip }}"
+    nfs_share: "{{ nas_dataset }}"
+    mount_point: "{{ backup_dir }}"
 
   tasks:
     - name: Ensure Timeshift is installed
@@ -28,6 +31,28 @@
         owner: "{{ regular_user }}"
         group: "{{ regular_user }}"
         mode: "0755"
+
+    - name: Ensure the mount point exists
+      file:
+        path: "{{ mount_point }}"
+        state: directory
+        mode: '0755'
+
+    - name: Add NFS mount entry to /etc/fstab
+      lineinfile:
+        path: /etc/fstab
+        regexp: '^{{ nfs_server }}:{{ nfs_share }}'
+        line: "{{ nfs_server }}:{{ nfs_share }} {{ mount_point }} nfs defaults 0 0"
+        state: present
+        backup: yes  # Optional: create a backup of fstab before modifying it
+
+    - name: Mount the NFS share
+      mount:
+        name: "{{ mount_point }}"
+        src: "{{ nfs_server }}:{{ nfs_share }}"
+        fstype: nfs
+        state: mounted
+        opts: defaults
 
     - name: Configure Timeshift (without triggering a snapshot)
       command: timeshift --snapshot-device="{{ backup_dir }}" --type rsync --tags D --comments "Scheduled daily backup"
