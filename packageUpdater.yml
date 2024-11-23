@@ -12,7 +12,14 @@
     - name: Update apt cache
       apt:
         update_cache: yes
-        cache_valid_time: 10
+      become: yes
+      register: apt_update_result
+      ignore_errors: yes
+
+    - name: Print result if no updates
+      debug:
+        msg: "No updates available"
+      when: apt_update_result.changed == false
         
     - name: Upgrade all packages
       apt:
