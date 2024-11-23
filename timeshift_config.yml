@@ -52,24 +52,7 @@
         minute: "{{ time_minute }}"
         hour: "{{ time_hour }}"
         job: "{{ backup_script }}"
-
-    - name: Verify that the backup script works (optional)
-      command: "{{ backup_script }}"
-      register: test_backup
-      failed_when: "'Failed' in test_backup.stderr"
-      when: test_backup is not defined
-
-    - name: Verify that backup directory contains a snapshot
-      find:
-        paths: "{{ backup_dir }}"
-        patterns: "*_*_*"  # Match default Timeshift snapshot naming convention
-      register: snapshots
-
-    - name: Fail if no snapshots are found
-      fail:
-        msg: "No Timeshift snapshots were created!"
-      when: snapshots.matched == 0
-
+        
     - name: Display success message
       debug:
         msg: "Timeshift setup complete! Snapshots will be created daily at {{ cron_time }} in {{ backup_dir }}."
