@@ -29,8 +29,8 @@
         group: "{{ regular_user }}"
         mode: "0755"
 
-    - name: Configure Timeshift with the backup directory
-      command: timeshift --snapshot-device="{{ backup_dir }}" --yes --tags D
+    - name: Configure Timeshift (without triggering a snapshot)
+      command: timeshift --snapshot-device="{{ backup_dir }}" --type rsync --tags D --comments "Scheduled daily backup"
       register: timeshift_setup
       failed_when: "'Failed' in timeshift_setup.stderr"
 
@@ -39,8 +39,8 @@
         dest: "{{ backup_script }}"
         content: |
           #!/bin/bash
-          # Trigger a Timeshift snapshot
-          timeshift --create --comments "{{ comment }}" --tags D
+          # Trigger a Timeshift snapshot in RSYNC mode
+          timeshift --create --snapshot-device="{{ backup_dir }}" --type rsync --comments "{{ comment }}" --tags D
         owner: root
         group: root
         mode: '0755'

@@ -33,6 +33,7 @@
         - libpam-google-authenticator
         - speedtest-cli
         - nfs-common
+        - cifs-utils
         - htop
         - neofetch
         - net-tools
