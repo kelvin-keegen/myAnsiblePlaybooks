@@ -12,7 +12,7 @@
     time_hour: "{{ cron_hour }}"
     time_minute: "{{ cron_minute }}"
     cron_time: "{{ time_minute }} {{ time_hour }} * * *"  # Cron schedule (daily)
-    comment: "Daily HomeDocker_Server backup"  # Comment for Timeshift snapshots
+    comment: "{{ comment_tag }}"  # Comment for Timeshift snapshots
     nfs_server: "{{ nas_ip }}"
     nfs_share: "{{ nas_dataset }}"
     mount_point: "{{ backup_dir }}"
