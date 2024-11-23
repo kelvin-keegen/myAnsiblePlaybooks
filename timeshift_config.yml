@@ -55,7 +55,7 @@
         opts: defaults
 
     - name: Configure Timeshift (without triggering a snapshot)
-      command: timeshift --snapshot-device="{{ backup_dir }}" --type rsync --tags D --comments "Scheduled daily backup"
+      command: timeshift --snapshot-device="{{ backup_dir }}" --type rsync --tags D --comments "{{ comment }}"
       register: timeshift_setup
       failed_when: "'Failed' in timeshift_setup.stderr"
 
