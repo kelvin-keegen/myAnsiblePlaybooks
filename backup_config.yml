@@ -29,6 +29,7 @@
       - "/lost+found"
       - "/swapfile"
       - "/var/lib/docker"
+      - "{{ backup_dir }}"
 
   tasks:
     - name: Ensure dependencies are installed
