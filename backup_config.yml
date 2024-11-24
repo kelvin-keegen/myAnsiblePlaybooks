@@ -19,7 +19,7 @@
     script_url: "{{ script_link }}"
     log_file: "{{ backup_dir }}/backup.log"  # Log file for the backup script
     exclusions:
-      - "{{ backup_dir }}"
+      - "/home/{{ regular_user }}/backups"
       - "/dev"
       - "/proc"
       - "/sys"
