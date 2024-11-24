@@ -81,14 +81,6 @@
     - name: Download the custom backup script
       get_url:
         url: "{{ script_url }}"  # Replace with your script URL
-        dest: "/tmp/backup_script.sh"
-        owner: root
-        group: root
-        mode: '0644'
-
-    - name: Copy the downloaded script to the final destination
-      copy:
-        src: "/tmp/backup_script.sh"
         dest: "{{ backup_script }}"
         owner: root
         group: root
