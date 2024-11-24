@@ -30,7 +30,7 @@
       - "/swapfile"
       - "/var/lib/docker"
       - ".cache"
-      - "backup_location"
+      - "{{ backup_dir }}"
 
   tasks:
     - name: Ensure dependencies are installed
@@ -48,22 +48,12 @@
         mode: "0755"
 
     - name: Create exclude.txt with specified exclusions
-      copy:
+      template:
+        src: exclude.txt.j2
         dest: "{{ exclude_file }}"
-        content: |
-          {% for path in exclusions %}
-          {{ path }}
-          {% endfor %}
         owner: "{{ regular_user }}"
         group: "{{ regular_user }}"
         mode: "0644"
-
-    - name: Add backup location to exclusion.txt
-      lineinfile:
-        path: "{{ exclude_file }}"
-        regexp: 'backup_location'
-        line: "{{ backup_dir }}"
-        state: present
 
     - name: Ensure the mount point exists
       file:
