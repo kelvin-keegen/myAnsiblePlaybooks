@@ -1,5 +1,5 @@
 ---
-- name: Setup Timeshift for Automated Backups
+- name: Setup Custom Backup Script with Exclude File for Automated Backups
   hosts: all
   become: yes
   become_user: root
@@ -7,24 +7,35 @@
     ansible_ssh_port: "{{ some_ssh_int }}"
     ansible_become_pass: "{{ random_pass }}"
     regular_user: "{{ normal_user }}"  # User who owns the backup directory
-    backup_dir: "/home/{{ regular_user }}/timeshift_backups"  # Directory for Timeshift snapshots
-    backup_script: "/home/{{ regular_user }}/scripts/timeshift_backup.sh"  # Path to the backup script
+    backup_dir: "/home/{{ regular_user }}/backups"  # Directory for script backups
+    backup_script: "/home/{{ regular_user }}/scripts/system_backup_restore.sh"  # Path to the backup script
+    exclude_file: "{{ backup_dir }}/exclude.txt"  # Path to the exclude file
     time_hour: "{{ cron_hour }}"
     time_minute: "{{ cron_minute }}"
     cron_time: "{{ time_minute }} {{ time_hour }} * * *"  # Cron schedule (daily)
-    comment: "{{ comment_tag }}"  # Comment for Timeshift snapshots
     nfs_server: "{{ nas_ip }}"
     nfs_share: "{{ nas_dataset }}"
     mount_point: "{{ backup_dir }}"
+    log_file: "{{ backup_dir }}/backup.log"  # Log file for the backup script
+    exclusions:
+      - "/dev"
+      - "/proc"
+      - "/sys"
+      - "/tmp"
+      - "/run"
+      - "/mnt"
+      - "/media"
+      - "/lost+found"
+      - "/swapfile"
 
   tasks:
-    - name: Ensure Timeshift is installed
+    - name: Ensure dependencies are installed
       apt:
-        name: timeshift
+        name: rsync
         state: present
         update_cache: yes
 
-    - name: Create timeshift backup directory
+    - name: Create backup directory
       file:
         path: "{{ backup_dir }}"
         state: directory
@@ -54,25 +65,32 @@
         state: mounted
         opts: defaults
 
-    - name: Configure Timeshift (without triggering a snapshot)
-      command: timeshift --snapshot-device="{{ backup_dir }}" --type rsync --tags D --comments "{{ comment }}"
-      register: timeshift_setup
-      failed_when: "'Failed' in timeshift_setup.stderr"
+    - name: Create exclude.txt with specified exclusions
+      copy:
+        dest: "{{ exclude_file }}"
+        content: |
+          {% for path in exclusions %}
+          {{ path }}
+          {% endfor %}
+        owner: "{{ regular_user }}"
+        group: "{{ regular_user }}"
+        mode: "0644"
 
-    - name: Create Timeshift backup script
+    - name: Create the custom backup script
       copy:
         dest: "{{ backup_script }}"
         content: |
           #!/bin/bash
-          # Trigger a Timeshift snapshot in RSYNC mode
-          timeshift --create --snapshot-device="{{ backup_dir }}" --type rsync --comments "{{ comment }}" --tags D
+          BACKUP_BASE="{{ backup_dir }}"
+          EXCLUDE_FILE="{{ exclude_file }}"
+          /bin/bash {{ backup_script }} "$BACKUP_BASE" backup >> {{ log_file }} 2>&1
         owner: root
         group: root
         mode: '0755'
 
     - name: Schedule daily backup with cron
       cron:
-        name: "Daily Timeshift Backup"
+        name: "Daily Custom Backup"
         user: root
         minute: "{{ time_minute }}"
         hour: "{{ time_hour }}"
@@ -80,4 +98,4 @@
 
     - name: Display success message
       debug:
-        msg: "Timeshift setup complete! Snapshots will be created daily at {{ cron_time }} in {{ backup_dir }}."
+        msg: "Backup script setup complete! Backups will run daily at {{ cron_time }} in {{ backup_dir }}. Exclusions are configured in {{ exclude_file }}."
