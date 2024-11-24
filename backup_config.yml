@@ -45,6 +45,17 @@
         group: "{{ regular_user }}"
         mode: "0755"
 
+    - name: Create exclude.txt with specified exclusions
+      copy:
+        dest: "{{ exclude_file }}"
+        content: |
+          {% for path in exclusions %}
+          {{ path }}
+          {% endfor %}
+        owner: "{{ regular_user }}"
+        group: "{{ regular_user }}"
+        mode: "0644"
+
     - name: Ensure the mount point exists
       file:
         path: "{{ mount_point }}"
@@ -66,17 +77,6 @@
         fstype: nfs
         state: mounted
         opts: defaults
-
-    - name: Create exclude.txt with specified exclusions
-      copy:
-        dest: "{{ exclude_file }}"
-        content: |
-          {% for path in exclusions %}
-          {{ path }}
-          {% endfor %}
-        owner: "{{ regular_user }}"
-        group: "{{ regular_user }}"
-        mode: "0644"
 
     - name: Download the custom backup script
       get_url:
