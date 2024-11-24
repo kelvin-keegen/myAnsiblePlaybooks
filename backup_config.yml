@@ -29,7 +29,6 @@
       - "/lost+found"
       - "/swapfile"
       - "/var/lib/docker"
-      - ".cache"
 
   tasks:
     - name: Ensure dependencies are installed
