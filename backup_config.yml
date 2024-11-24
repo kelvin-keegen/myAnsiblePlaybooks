@@ -19,7 +19,6 @@
     script_url: "{{ script_link }}"
     log_file: "{{ backup_dir }}/backup.log"  # Log file for the backup script
     exclusions:
-      - "/home/{{ regular_user }}/backups"
       - "/dev"
       - "/proc"
       - "/sys"
@@ -31,6 +30,7 @@
       - "/swapfile"
       - "/var/lib/docker"
       - ".cache"
+      - "backup_location"
 
   tasks:
     - name: Ensure dependencies are installed
@@ -57,6 +57,13 @@
         owner: "{{ regular_user }}"
         group: "{{ regular_user }}"
         mode: "0644"
+
+    - name: Add backup location to exclusion.txt
+      lineinfile:
+        path: "{{ exclude_file }}"
+        regexp: 'backup_location'
+        line: "{{ backup_dir }}"
+        state: present
 
     - name: Ensure the mount point exists
       file:
