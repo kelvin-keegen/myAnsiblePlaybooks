@@ -30,7 +30,6 @@
       - "/swapfile"
       - "/var/lib/docker"
       - ".cache"
-      - "{{ backup_dir }}"
 
   tasks:
     - name: Ensure dependencies are installed
@@ -48,9 +47,13 @@
         mode: "0755"
 
     - name: Create exclude.txt with specified exclusions
-      template:
-        src: exclude.txt.j2
+      copy:
         dest: "{{ exclude_file }}"
+        content: |
+          {% for path in exclusions %}
+          {{ path }}
+          {% endfor %}
+          {{ backup_dir }}
         owner: "{{ regular_user }}"
         group: "{{ regular_user }}"
         mode: "0644"
