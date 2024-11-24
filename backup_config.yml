@@ -19,6 +19,7 @@
     script_url: "{{ script_link }}"
     log_file: "{{ backup_dir }}/backup.log"  # Log file for the backup script
     exclusions:
+      - "{{ backup_dir }}"
       - "/dev"
       - "/proc"
       - "/sys"
@@ -29,7 +30,6 @@
       - "/lost+found"
       - "/swapfile"
       - "/var/lib/docker"
-      - "{{ backup_dir }}"
       - ".cache"
 
   tasks:
