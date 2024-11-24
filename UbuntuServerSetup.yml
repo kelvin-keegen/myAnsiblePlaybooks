@@ -41,7 +41,6 @@
         - resolvconf
         - qemu-guest-agent
         - git
-        - timeshift
         
 #userAddition.yml
     - name: Create regular_user with sudo privileges and set default shell to bash
