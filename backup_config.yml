@@ -52,7 +52,6 @@
           {% for path in exclusions %}
           {{ path }}
           {% endfor %}
-          {{ backup_dir }}
         owner: "{{ regular_user }}"
         group: "{{ regular_user }}"
         mode: "0644"
