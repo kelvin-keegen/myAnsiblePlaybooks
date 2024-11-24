@@ -30,6 +30,7 @@
       - "/swapfile"
       - "/var/lib/docker"
       - "{{ backup_dir }}"
+      - ".cache"
 
   tasks:
     - name: Ensure dependencies are installed
