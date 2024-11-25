@@ -17,7 +17,7 @@
     nfs_share: "{{ nas_dataset }}"
     mount_point: "{{ backup_dir }}"
     script_url: "{{ script_link }}"
-    log_file: "{{ backup_dir }}/backup.log"  # Log file for the backup script
+    notify_url: "{{ ntfy_url }}"
     exclusions:
       - "/dev"
       - "/proc"
@@ -93,7 +93,7 @@
         user: root
         minute: "{{ time_minute }}"
         hour: "{{ time_hour }}"
-        job: "/bin/bash {{ backup_script }} {{ backup_dir }} backup"
+        job: "/bin/bash {{ backup_script }} {{ backup_dir }} backup {{ notify_url }}"
 
     - name: Display success message
       debug:
