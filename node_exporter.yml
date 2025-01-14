@@ -1,0 +1,81 @@
+---
+- name: Install Node Exporter on Ubuntu
+  hosts: all
+  become: yes
+  become_user: root
+  vars: 
+    ansible_ssh_port: "{{ some_ssh_int }}"  # Change this to your custom SSH port
+    ansible_become_pass: "{{ random_pass }}"  # Replace with your root password
+    notification_url: "{{ some_url }}"  # Replace with your notification endpoint
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install dependencies
+      apt:
+        name:
+          - wget
+          - tar
+          - curl
+        state: present
+
+    - name: Download Node Exporter
+      get_url:
+        url: "https://github.com/prometheus/node_exporter/releases/download/v1.6.1/node_exporter-1.6.1.linux-amd64.tar.gz"
+        dest: "/tmp/node_exporter-1.6.1.linux-amd64.tar.gz"
+
+    - name: Extract Node Exporter
+      unarchive:
+        src: "/tmp/node_exporter-1.6.1.linux-amd64.tar.gz"
+        dest: "/tmp/"
+        remote_src: yes
+
+    - name: Move Node Exporter binary to /usr/local/bin
+      command:
+        cmd: mv /tmp/node_exporter-1.6.1.linux-amd64/node_exporter /usr/local/bin/
+
+    - name: Create node_exporter user
+      user:
+        name: node_exporter
+        shell: /usr/sbin/nologin
+        system: yes
+
+    - name: Create systemd service for Node Exporter
+      copy:
+        content: |
+          [Unit]
+          Description=Prometheus Node Exporter
+          After=network.target
+
+          [Service]
+          User=node_exporter
+          ExecStart=/usr/local/bin/node_exporter
+
+          [Install]
+          WantedBy=default.target
+        dest: /etc/systemd/system/node_exporter.service
+        mode: '0644'
+
+    - name: Reload systemd daemon
+      systemd:
+        daemon_reload: yes
+
+    - name: Start Node Exporter service
+      systemd:
+        name: node_exporter
+        state: started
+        enabled: yes
+
+    - name: Verify Node Exporter is running
+      uri:
+        url: "http://localhost:9100/metrics"
+        method: GET
+        return_content: yes
+        status_code: 200
+      register: node_exporter_status
+
+    - name: Ensure that Node Exporter metrics are available
+      debug:
+        msg: "Node Exporter metrics are available: {{ node_exporter_status.status }}"
