@@ -42,7 +42,6 @@
       file:
         path: /tmp/node_exporter-1.6.1.linux-amd64
         state: absent
-        recurse: yes
 
     - name: Remove Node Exporter tarball
       file:
