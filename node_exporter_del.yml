@@ -1,0 +1,50 @@
+---
+- name: Remove Node Exporter from Ubuntu
+  hosts: all
+  become: yes
+  become_user: root
+  vars: 
+    ansible_ssh_port: "{{ some_ssh_int }}"  # Change this to your custom SSH port
+    ansible_become_pass: "{{ random_pass }}"  # Replace with your root password
+    notification_url: "{{ some_url }}"  # Replace with your notification endpoint
+
+  tasks:
+    - name: Stop Node Exporter service
+      systemd:
+        name: node_exporter
+        state: stopped
+
+    - name: Disable Node Exporter service
+      systemd:
+        name: node_exporter
+        enabled: no
+
+    - name: Remove systemd service file for Node Exporter
+      file:
+        path: /etc/systemd/system/node_exporter.service
+        state: absent
+
+    - name: Reload systemd daemon
+      systemd:
+        daemon_reload: yes
+
+    - name: Remove Node Exporter binary
+      file:
+        path: /usr/local/bin/node_exporter
+        state: absent
+
+    - name: Remove node_exporter user
+      user:
+        name: node_exporter
+        state: absent
+
+    - name: Remove Node Exporter download directory
+      file:
+        path: /tmp/node_exporter-1.6.1.linux-amd64
+        state: absent
+        recurse: yes
+
+    - name: Remove Node Exporter tarball
+      file:
+        path: /tmp/node_exporter-1.6.1.linux-amd64.tar.gz
+        state: absent
