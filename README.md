@@ -2,11 +2,11 @@
 
 ### Single playbook (All-in-one)
 
-*packageUpdater.yml*
+`packageUpdater.yml`
 
-*serverSetup.yml* -> for Ubuntu servers
+`serverSetup.yml` -> for Ubuntu servers
 
-*removeDefaultUser.yml* -> Default user cleanup
+`removeDefaultUser.yml` -> Default user cleanup
 
 ### For a newly installed system, run the playbooks in the following order:
 
