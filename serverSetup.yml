@@ -141,7 +141,7 @@
         path: /etc/ssh/sshd_config
         regexp: '^#?Port\s+.+$'
         replace: "Port {{ new_ssh_port }}"
-      notify: Restart SSH
+      notify: Restart SSH service
       
 #packageUpdater.yml
     - name: Update apt cache
