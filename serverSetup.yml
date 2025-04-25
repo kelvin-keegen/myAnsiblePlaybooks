@@ -120,28 +120,6 @@
       systemd:
         name: cockpit.socket
         state: restarted
-        
-#sshd_Modification.yml
-    - name: Disable password authentication
-      lineinfile:
-        path: /etc/ssh/sshd_config
-        regexp: '^PasswordAuthentication'
-        line: 'PasswordAuthentication no'
-        backup: yes
-
-    - name: Disable root login
-      lineinfile:
-        path: /etc/ssh/sshd_config
-        regexp: '^PermitRootLogin'
-        line: 'PermitRootLogin no'
-        backup: yes
-
-    - name: Change SSH port to new_ssh_port
-      replace:
-        path: /etc/ssh/sshd_config
-        regexp: '^#?Port\s+.+$'
-        replace: "Port {{ new_ssh_port }}"
-      notify: Restart SSH service
       
 #packageUpdater.yml
     - name: Update apt cache
@@ -216,6 +194,28 @@
         name: "{{ devops_user }}"
         groups: docker
         append: yes
+
+  #sshd_Modification.yml
+    - name: Disable password authentication
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^PasswordAuthentication'
+        line: 'PasswordAuthentication no'
+        backup: yes
+
+    - name: Disable root login
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^PermitRootLogin'
+        line: 'PermitRootLogin no'
+        backup: yes
+
+    - name: Change SSH port to new_ssh_port
+      replace:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?Port\s+.+$'
+        replace: "Port {{ new_ssh_port }}"
+      notify: Restart SSH service
 
     - name: Get the SSH service name
       command: systemctl list-units --type=service | grep -E 'ssh'
