@@ -2,9 +2,9 @@
 
 ### Single playbook (All-in-one)
 
-*SettingUpServer.yml*
+*packageUpdater.yml*
 
-*UbuntuServerSetup.yml* -> for default ubuntu images
+*serverSetup.yml* -> for Ubuntu servers
 
 *removeDefaultUser.yml* -> Default user cleanup
 
