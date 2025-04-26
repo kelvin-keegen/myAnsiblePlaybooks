@@ -242,11 +242,12 @@
       failed_when: sshd_check.rc != 0
 
     - name: Reboot the system only if SSH config is valid
-      reboot:
-      async: 0
-      poll: 0
+      command: reboot
       ignore_errors: yes
       when: sshd_check.rc == 0
+
+    - name: End play after reboot
+      meta: end_play
   
   handlers:
     - name: restart docker
