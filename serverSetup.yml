@@ -1,5 +1,5 @@
 ---
-- name: Install necessary packages on Ubuntu 22.04 LTS
+- name: Install necessary packages on Ubuntu LTS
   hosts: all
   become: yes
   become_user: root
@@ -12,7 +12,7 @@
     my_sweet_key2: "{{ mykey2 }}"
     new_ssh_port: "{{ some_ssh_int }}"
     notification_url: "{{ some_url }}"
-    
+
   tasks:
     - name: Update apt package cache
       apt:
@@ -195,6 +195,16 @@
         groups: docker
         append: yes
 
+  # Backup ssh config
+    - name: Backup original sshd_config
+      copy:
+        src: /etc/ssh/sshd_config
+        dest: /etc/ssh/sshd_config.backup
+        remote_src: yes
+        owner: root
+        group: root
+        mode: "0644"
+
   #sshd_Modification.yml
     - name: Disable password authentication
       lineinfile:
@@ -215,7 +225,6 @@
         path: /etc/ssh/sshd_config
         regexp: '^#?Port\s+.+$'
         replace: "Port {{ new_ssh_port }}"
-      notify: Restart SSH service
 
     - name: Get the SSH service name
       command: systemctl list-units --type=service | grep -E 'ssh'
@@ -232,6 +241,13 @@
       register: sshd_check
       changed_when: false
       failed_when: sshd_check.rc != 0
+
+    - name: Reboot the system only if SSH config is valid
+      reboot:
+      async: 0
+      poll: 0
+      ignore_errors: yes
+      when: sshd_check.rc == 0
   
   handlers:
     - name: restart docker
@@ -244,8 +260,4 @@
         name: cockpit.socket
         state: restarted
       listen: "PAM configuration changed"
-      
-    - name: Restart SSH service
-      service:
-        name: "{{ ssh_service_name }}"
-        state: reloaded
+

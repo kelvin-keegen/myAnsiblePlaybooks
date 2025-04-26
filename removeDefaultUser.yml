@@ -6,22 +6,8 @@
   vars: 
     ansible_ssh_port: "{{ some_ssh_int }}"
     ansible_become_pass: "{{ random_pass }}"
-
-  tasks:
-    - name: Reboot the system
-      reboot:
-      async: 0
-      poll: 0
-      ignore_errors: yes
-
-- name: Delete a user in Ubuntu 22.04
-  hosts: all
-  become: yes
-  vars: 
-    ansible_ssh_port: "{{ some_ssh_int }}"
-    ansible_become_pass: "{{ random_pass }}"
     username: "{{ defaultUser }}"
-  
+
   tasks:
     - name: Ensure the user exists before deletion
       command: id {{ username }}
@@ -32,5 +18,5 @@
       user:
         name: "{{ username }}"
         state: absent
-        remove: yes  # This removes the user's home directory
+        remove: yes
       when: user_exists.rc == 0
