@@ -226,7 +226,13 @@
     - name: Set SSH service name variable
       set_fact:
         ssh_service_name: "{{ ssh_services.stdout_lines[0].split()[0] if ssh_services.stdout_lines | length > 0 else 'ssh' }}"
-        
+
+    - name: Validate SSH configuration
+      command: sshd -t
+      register: sshd_check
+      changed_when: false
+      failed_when: sshd_check.rc != 0
+  
   handlers:
     - name: restart docker
       service:
@@ -242,4 +248,4 @@
     - name: Restart SSH service
       service:
         name: "{{ ssh_service_name }}"
-        state: restarted
+        state: reloaded
