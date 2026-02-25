@@ -1,36 +1,57 @@
 ---
 - name: Update Ubuntu servers and notify if reboot is required
   hosts: all
-  become: yes  # This enables privilege escalation to root
+  become: yes
   become_user: root
-  vars: 
-    ansible_ssh_port: "{{ some_ssh_int }}"  # Change this to your custom SSH port
-    ansible_become_pass: "{{ random_pass }}"  # Replace with your root password
-    notification_url: "{{ some_url }}"  # Replace with your notification endpoint
-  
+  vars:
+    ansible_ssh_port: "{{ some_ssh_int }}"
+    ansible_become_pass: "{{ random_pass }}"
+    notification_url: "{{ some_url | default('') }}"
+    auto_reboot: "{{ reboot | default('false') }}"
+
   tasks:
     - name: Update apt cache
       apt:
         update_cache: yes
-        
+        cache_valid_time: 3600
+
     - name: Upgrade all packages
       apt:
-        upgrade: yes
+        upgrade: dist
         autoclean: yes
       register: upgrade_result
 
-    - name: Check if reboot is required (Ubuntu/Debian)
+    - name: Check if reboot is required
       stat:
         path: /var/run/reboot-required
       register: reboot_required
       changed_when: false
 
-    - name: Send message if reboot is required
+    - name: Display reboot notice
       debug:
         msg: "Reboot is required on {{ inventory_hostname }}"
       when: reboot_required.stat.exists
 
-    - name: Send POST notification if reboot is required
-      shell: |
-        curl -X POST "{{ notification_url }}" -d "System Reboot is required on {{ inventory_hostname }}"
-      when: reboot_required.stat.exists
+    - name: Send ntfy notification if reboot is required
+      uri:
+        url: "{{ notification_url }}"
+        method: POST
+        body: "System reboot is required on {{ inventory_hostname }}"
+        body_format: raw
+        headers:
+          Title: "Reboot Required"
+          Priority: "high"
+          Tags: "warning,server"
+        status_code: [200, 201, 202, 204]
+      when:
+        - reboot_required.stat.exists
+        - notification_url | length > 0
+      failed_when: false
+
+    - name: Auto-reboot if required and enabled
+      reboot:
+        msg: "Ansible auto-reboot: packages updated, reboot required"
+        reboot_timeout: 300
+      when:
+        - reboot_required.stat.exists
+        - auto_reboot | bool

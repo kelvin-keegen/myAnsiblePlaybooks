@@ -1,22 +1,110 @@
 ---
-- name: Deleting defaultUser
+- name: Clean up default user on fresh system
   hosts: all
   become: yes
   become_user: root
-  vars: 
+  vars:
     ansible_ssh_port: "{{ some_ssh_int }}"
     ansible_become_pass: "{{ random_pass }}"
     username: "{{ defaultUser }}"
 
   tasks:
-    - name: Ensure the user exists before deletion
-      command: id {{ username }}
-      register: user_exists
-      ignore_errors: yes
+    # ── Safety checks ──
+    - name: Verify defaultUser variable is provided
+      fail:
+        msg: "The 'defaultUser' variable is not set. Pass it via --extra-vars."
+      when: username is not defined or username | length == 0
 
-    - name: Delete the user if exists
-      user:
-        name: "{{ username }}"
-        state: absent
-        remove: yes
-      when: user_exists.rc == 0
+    - name: Verify we are not deleting the currently connected user
+      fail:
+        msg: "Refusing to clean '{{ username }}' — it is the current Ansible SSH user. Connect as a different user first."
+      when: username == ansible_user
+
+    # ── Path A: root account (cannot delete, sanitize instead) ──
+    - name: Sanitize root account
+      when: username == 'root'
+      block:
+        - name: Lock the root password (disable password login)
+          user:
+            name: root
+            password: "!"
+            password_lock: yes
+
+        - name: Remove root SSH authorized_keys
+          file:
+            path: /root/.ssh/authorized_keys
+            state: absent
+
+        - name: Clear root bash history
+          file:
+            path: /root/.bash_history
+            state: absent
+
+        - name: Remove root .bashrc customizations (reset to skeleton)
+          copy:
+            src: /etc/skel/.bashrc
+            dest: /root/.bashrc
+            remote_src: yes
+            owner: root
+            group: root
+            mode: "0644"
+
+        - name: Remove root .profile customizations (reset to skeleton)
+          copy:
+            src: /etc/skel/.profile
+            dest: /root/.profile
+            remote_src: yes
+            owner: root
+            group: root
+            mode: "0644"
+
+        - name: Ensure PermitRootLogin is disabled in sshd_config
+          lineinfile:
+            path: /etc/ssh/sshd_config
+            regexp: "^#?PermitRootLogin"
+            line: "PermitRootLogin no"
+          notify: Restart SSH
+
+        - name: Clean any root cron jobs
+          command: crontab -r -u root
+          failed_when: false
+          changed_when: true
+
+    # ── Path B: named default user (ubuntu, debian, etc.) — full removal ──
+    - name: Remove named default user
+      when: username != 'root'
+      block:
+        - name: Kill all running processes for the user
+          command: pkill -u {{ username }}
+          register: pkill_result
+          changed_when: pkill_result.rc == 0
+          failed_when: false
+
+        - name: Get UID of user before deletion
+          command: id -u {{ username }}
+          register: user_uid
+          changed_when: false
+          failed_when: false
+
+        - name: Remove any lingering files owned by the user in temp dirs
+          command: find /tmp /var/tmp -uid {{ user_uid.stdout }} -delete
+          when: user_uid.rc == 0
+          failed_when: false
+          changed_when: false
+
+        - name: Delete the user and remove home directory
+          user:
+            name: "{{ username }}"
+            state: absent
+            remove: yes
+
+        - name: Remove sudoers entry if one exists
+          file:
+            path: "/etc/sudoers.d/90-cloud-init-users"
+            state: absent
+
+  handlers:
+    - name: Restart SSH
+      systemd:
+        name: ssh
+        state: restarted

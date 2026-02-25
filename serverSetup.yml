@@ -11,73 +11,108 @@
     my_sweet_key: "{{ mykey }}"
     my_sweet_key2: "{{ mykey2 }}"
     new_ssh_port: "{{ some_ssh_int }}"
+    dns_server_1: "{{ dns1 }}"
+    dns_server_2: "{{ dns2 }}"
 
   tasks:
     - name: Update apt package cache
       apt:
         update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Upgrade all packages first
+      apt:
+        upgrade: dist
+        autoclean: yes
+      register: upgrade_result
 
     - name: Install core packages
       apt:
-        name: "{{ item }}"
+        name:
+          - python3-pip
+          - python3-requests
+          - python3-passlib
+          - python3-psutil
+          - debian-goodies
+          - openssh-server
+          - cockpit
+          - libpam-google-authenticator
+          - speedtest-cli
+          - nfs-common
+          - cifs-utils
+          - htop
+          - net-tools
+          - wireguard
+          - qemu-guest-agent
+          - git
+          - ufw
+          - lsb-release
         state: present
-      loop:
-        - python3-pip
-        - python3-requests
-        - python3-passlib
-        - python3-psutil
-        - debian-goodies
-        - openssh-server
-        - cockpit
-        - libpam-google-authenticator
-        - speedtest-cli
-        - nfs-common
-        - cifs-utils
-        - htop
-        - neofetch
-        - net-tools
-        - wireguard
-        - resolvconf
-        - qemu-guest-agent
-        - git
-        - ufw
-        
-#userAddition.yml
+
+    - name: Add fastfetch PPA
+      apt_repository:
+        repo: "ppa:zhangsongcui3371/fastfetch"
+        state: present
+        update_cache: yes
+      failed_when: false
+
+    - name: Install fastfetch
+      apt:
+        name: fastfetch
+        state: present
+      failed_when: false
+
+    # DNS Configuration (persistent via systemd-resolved)
+    - name: Configure custom DNS servers in systemd-resolved
+      lineinfile:
+        path: /etc/systemd/resolved.conf
+        regexp: "^#?DNS="
+        line: "DNS={{ dns_server_1 }} {{ dns_server_2 }}"
+        backup: yes
+      notify: Restart systemd-resolved
+
+    - name: Disable fallback to DHCP-provided DNS
+      lineinfile:
+        path: /etc/systemd/resolved.conf
+        regexp: "^#?FallbackDNS="
+        line: "FallbackDNS="
+        backup: yes
+      notify: Restart systemd-resolved
+
+    - name: Flush DNS handlers to apply new resolvers immediately
+      meta: flush_handlers
+
+    #userAddition.yml
     - name: Create regular_user with sudo privileges and set default shell to bash
       user:
         name: "{{ regular_user }}"
         shell: /bin/bash
-        password: "{{ new_password | password_hash('sha512_crypt') }}"
+        password: "{{ new_password | password_hash('sha512') }}"
         append: yes
         groups: sudo
         createhome: yes
 
-    - name: Create apps directory
+    - name: Create user directories for regular_user
       file:
-        path: "/home/{{ regular_user }}/apps"
+        path: "/home/{{ regular_user }}/{{ item }}"
         state: directory
         owner: "{{ regular_user }}"
         group: "{{ regular_user }}"
         mode: "0755"
-
-    - name: Create scripts directory
-      file:
-        path: "/home/{{ regular_user }}/scripts"
-        state: directory
-        owner: "{{ regular_user }}"
-        group: "{{ regular_user }}"
-        mode: "0755"
+      loop:
+        - apps
+        - scripts
 
     - name: Create devops_user with sudo privileges and set default shell to bash
       user:
         name: "{{ devops_user }}"
         shell: /bin/bash
-        password: "{{ new_password | password_hash('sha512_crypt') }}"
+        password: "{{ new_password | password_hash('sha512') }}"
         append: yes
         groups: sudo
         createhome: yes
 
-#configure_SSH_user.yml
+    #configure_SSH_user.yml
     - name: Ensure the SSH directory exists for the devops_user
       file:
         path: "/home/{{ devops_user }}/.ssh"
@@ -91,7 +126,7 @@
         user: "{{ devops_user }}"
         key: "{{ my_sweet_key }}"
         state: present
-        
+
     - name: Ensure the SSH directory exists for the regular_user
       file:
         path: "/home/{{ regular_user }}/.ssh"
@@ -106,76 +141,69 @@
         key: "{{ my_sweet_key2 }}"
         state: present
 
-# Cockpit_configuration        
+    # Cockpit_configuration
     - name: Add TOTP authentication to PAM configuration for Cockpit
-      lineinfile:
+      blockinfile:
         path: /etc/pam.d/cockpit
-        line: |
+        block: |
           auth required pam_google_authenticator.so
           auth required pam_succeed_if.so user in [{{ regular_user }}]
           auth required pam_permit.so
-        insertafter: EOF
+        marker: "# {mark} ANSIBLE MANAGED - TOTP CONFIG"
+      notify: Restart Cockpit service
 
-    - name: Restart Cockpit service
-      systemd:
-        name: cockpit.socket
-        state: restarted
-      
-#packageUpdater.yml
-    - name: Update apt cache
-      apt:
-        update_cache: yes
-        
-    - name: Upgrade all packages
-      apt:
-        upgrade: yes
-        autoclean: yes
-      register: upgrade_result
-      
-#dockerInstaller.yml
-    - name: Update apt packages cache
-      apt:
-        update_cache: yes
+    - name: Flush handlers before SSH changes and reboot
+      meta: flush_handlers
 
-    - name: Install prerequisites
+    #dockerInstaller.yml
+    - name: Install Docker prerequisites
       apt:
-        name: "{{ item }}"
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
         state: present
-      loop:
-        - apt-transport-https
-        - ca-certificates
-        - curl
-        - gnupg
-        - lsb-release
 
-  # Add conditional task to determine architecture and set Docker repository accordingly
-    - name: Add Docker repository based on architecture
+    # Add conditional task to determine architecture and set Docker repository accordingly
+    - name: Set Docker architecture
       set_fact:
-        docker_repo_url: "{% if ansible_architecture == 'x86_64' %}deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_lsb.codename }} stable{% elif ansible_architecture == 'aarch64' %}deb [arch=arm64] https://download.docker.com/linux/ubuntu {{ ansible_lsb.codename }} stable{% endif %}"
+        docker_arch: "{{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' }}"
 
-    - name: Add Docker's official GPG key
-      apt_key:
+    - name: Ensure /etc/apt/keyrings directory exists
+      file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: "0755"
+
+    - name: Download Docker GPG key
+      get_url:
         url: https://download.docker.com/linux/ubuntu/gpg
-        state: present
+        dest: /etc/apt/keyrings/docker.asc
+        mode: "0644"
+
+    - name: Re-gather facts after lsb-release install
+      setup:
+        gather_subset:
+          - "!all"
+          - "lsb"
 
     - name: Add Docker repository
       apt_repository:
-        repo: "{{ docker_repo_url }}"
+        repo: "deb [arch={{ docker_arch }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_lsb.codename }} stable"
         state: present
+        filename: docker
 
-    - name: Update apt packages cache (again with Docker repository)
+    - name: Install Docker packages
       apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose-plugin
+        state: present
         update_cache: yes
-
-    - name: Install Docker
-      apt:
-        name: docker-ce
-        state: present
-
-    - name: Install Docker Compose
-      apt:
-        name: docker-compose
-        state: present
 
     - name: Start and enable Docker service
       service:
@@ -183,19 +211,16 @@
         state: started
         enabled: yes
 
-    - name: Add regular_user to Docker group
+    - name: Add users to Docker group
       user:
-        name: "{{ regular_user }}"
+        name: "{{ item }}"
         groups: docker
         append: yes
+      loop:
+        - "{{ regular_user }}"
+        - "{{ devops_user }}"
 
-    - name: Add devops_user to Docker group
-      user:
-        name: "{{ devops_user }}"
-        groups: docker
-        append: yes
-
-  # Backup ssh config
+    # Backup ssh config
     - name: Backup original sshd_config
       copy:
         src: /etc/ssh/sshd_config
@@ -204,37 +229,52 @@
         owner: root
         group: root
         mode: "0644"
+        force: no
 
-  #sshd_Modification.yml
+    #sshd_Modification.yml
     - name: Disable password authentication
       lineinfile:
         path: /etc/ssh/sshd_config
-        regexp: '^PasswordAuthentication'
-        line: 'PasswordAuthentication no'
+        regexp: "^#?PasswordAuthentication"
+        line: "PasswordAuthentication no"
         backup: yes
 
     - name: Disable root login
       lineinfile:
         path: /etc/ssh/sshd_config
-        regexp: '^PermitRootLogin'
-        line: 'PermitRootLogin no'
+        regexp: "^#?PermitRootLogin"
+        line: "PermitRootLogin no"
         backup: yes
 
-    - name: Change SSH port to new_ssh_port
-      replace:
+    - name: Disable ChallengeResponseAuthentication in sshd_config
+      lineinfile:
         path: /etc/ssh/sshd_config
-        regexp: '^#?Port\s+.+$'
-        replace: "Port {{ new_ssh_port }}"
+        regexp: "^#?ChallengeResponseAuthentication"
+        line: "ChallengeResponseAuthentication no"
+        backup: yes
 
-    - name: Get the SSH service name
-      command: systemctl list-units --type=service | grep -E 'ssh'
-      register: ssh_services
-      changed_when: false
+    - name: Disable KbdInteractiveAuthentication in sshd_config (Ubuntu 24.04 LTS)
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "^#?KbdInteractiveAuthentication"
+        line: "KbdInteractiveAuthentication no"
+        backup: yes
+
+    - name: Disable password authentication in cloud-init SSH config
+      lineinfile:
+        path: /etc/ssh/sshd_config.d/50-cloud-init.conf
+        regexp: "^#?PasswordAuthentication"
+        line: "PasswordAuthentication no"
+        backup: yes
+      when: ansible_distribution == 'Ubuntu' and ansible_distribution_version == '24.04'
       failed_when: false
 
-    - name: Set SSH service name variable
-      set_fact:
-        ssh_service_name: "{{ ssh_services.stdout_lines[0].split()[0] if ssh_services.stdout_lines | length > 0 else 'ssh' }}"
+    - name: Change SSH port to new_ssh_port
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?\s*Port\s+'
+        line: "Port {{ new_ssh_port }}"
+        backup: yes
 
     - name: Validate SSH configuration
       command: sshd -t
@@ -242,23 +282,23 @@
       changed_when: false
       failed_when: sshd_check.rc != 0
 
+    - name: Update Ansible SSH port for reconnection after reboot
+      set_fact:
+        ansible_port: "{{ new_ssh_port }}"
+
     - name: Reboot the system only if SSH config is valid
-      command: reboot
-      ignore_errors: yes
+      reboot:
+        msg: "Ansible reboot: SSH configuration updated"
+        reboot_timeout: 300
       when: sshd_check.rc == 0
 
-    - name: End play after reboot
-      meta: end_play
-  
   handlers:
-    - name: restart docker
-      service:
-        name: docker
-        state: restarted
-        
-    - name: Restart Cockpit service if PAM configuration changed
+    - name: Restart Cockpit service
       systemd:
         name: cockpit.socket
         state: restarted
-      listen: "PAM configuration changed"
 
+    - name: Restart systemd-resolved
+      systemd:
+        name: systemd-resolved
+        state: restarted
