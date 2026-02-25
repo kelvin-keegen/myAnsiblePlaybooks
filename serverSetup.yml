@@ -282,15 +282,14 @@
       changed_when: false
       failed_when: sshd_check.rc != 0
 
-    - name: Update Ansible SSH port for reconnection after reboot
-      set_fact:
-        ansible_port: "{{ new_ssh_port }}"
-
-    - name: Reboot the system only if SSH config is valid
-      reboot:
-        msg: "Ansible reboot: SSH configuration updated"
-        reboot_timeout: 300
+    - name: Reboot the system (fire and forget)
+      shell: "sleep 2 && shutdown -r now 'Ansible reboot: server setup complete'"
+      async: 1
+      poll: 0
       when: sshd_check.rc == 0
+
+    - name: End play — server is rebooting into its new configuration
+      meta: end_play
 
   handlers:
     - name: Restart Cockpit service
