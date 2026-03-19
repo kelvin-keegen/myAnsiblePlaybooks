@@ -302,6 +302,14 @@
       set_fact:
         sshd_changed: "{{ (sshd_password_auth is changed) or (sshd_root_login is changed) or (sshd_challenge_resp is changed) or (sshd_kbd_interactive is changed) or (sshd_cloud_init is changed) or (sshd_port_change is changed) }}"
 
+    - name: Ensure SSH privilege separation directory exists
+      file:
+        path: /run/sshd
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
     - name: Validate SSH configuration
       command: sshd -t
       register: sshd_check
