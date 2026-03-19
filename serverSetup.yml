@@ -247,7 +247,7 @@
         mode: "0644"
         force: no
 
-    #sshd_Modification.yml
+    #sshd_Modification.yml — security hardening (safe, won't lock you out)
     - name: Disable password authentication
       lineinfile:
         path: /etc/ssh/sshd_config
@@ -290,18 +290,7 @@
       failed_when: false
       register: sshd_cloud_init
 
-    - name: Change SSH port to new_ssh_port
-      lineinfile:
-        path: /etc/ssh/sshd_config
-        regexp: '^#?\s*Port\s+'
-        line: "Port {{ new_ssh_port }}"
-        backup: yes
-      register: sshd_port_change
-
-    - name: Check if any SSH config changed
-      set_fact:
-        sshd_changed: "{{ (sshd_password_auth is changed) or (sshd_root_login is changed) or (sshd_challenge_resp is changed) or (sshd_kbd_interactive is changed) or (sshd_cloud_init is changed) or (sshd_port_change is changed) }}"
-
+    # Validate security changes BEFORE touching the port
     - name: Ensure SSH privilege separation directory exists
       file:
         path: /run/sshd
@@ -310,18 +299,63 @@
         group: root
         mode: "0755"
 
-    - name: Validate SSH configuration
+    - name: Validate SSH config before port change
       command: sshd -t
-      register: sshd_check
+      register: sshd_pre_check
       changed_when: false
-      failed_when: sshd_check.rc != 0
-      when: sshd_changed | bool
+      failed_when: false
+
+    - name: Restore sshd_config from backup if validation failed
+      copy:
+        src: /etc/ssh/sshd_config.backup
+        dest: /etc/ssh/sshd_config
+        remote_src: yes
+        owner: root
+        group: root
+        mode: "0644"
+      when: sshd_pre_check.rc != 0
+
+    - name: Abort if SSH config is invalid
+      fail:
+        msg: "SSH config validation failed BEFORE port change. Config restored from backup. Error: {{ sshd_pre_check.stderr }}"
+      when: sshd_pre_check.rc != 0
+
+    # Port change — only applied after validation passes
+    - name: Change SSH port to new_ssh_port
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?\s*Port\s+'
+        line: "Port {{ new_ssh_port }}"
+        backup: yes
+      register: sshd_port_change
+
+    - name: Validate SSH config after port change
+      command: sshd -t
+      register: sshd_post_check
+      changed_when: false
+      failed_when: false
+
+    - name: Revert port change if validation failed
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^Port\s+'
+        line: "Port 22"
+      when: sshd_post_check.rc != 0
+
+    - name: Abort if SSH config with new port is invalid
+      fail:
+        msg: "SSH config validation failed AFTER port change. Port reverted to 22. Error: {{ sshd_post_check.stderr }}"
+      when: sshd_post_check.rc != 0
+
+    - name: Check if any SSH config changed
+      set_fact:
+        sshd_changed: "{{ (sshd_password_auth is changed) or (sshd_root_login is changed) or (sshd_challenge_resp is changed) or (sshd_kbd_interactive is changed) or (sshd_cloud_init is changed) or (sshd_port_change is changed) }}"
 
     - name: Reboot the system (fire and forget)
       shell: "sleep 2 && shutdown -r now 'Ansible reboot: server setup complete'"
       async: 1
       poll: 0
-      when: sshd_changed | bool and (sshd_check.rc | default(1)) == 0
+      when: sshd_changed | bool
 
     - name: End play — server is rebooting into its new configuration
       meta: end_play
