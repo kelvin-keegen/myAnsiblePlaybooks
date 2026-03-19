@@ -62,22 +62,33 @@
         state: present
       failed_when: false
 
-    # DNS Configuration (persistent via systemd-resolved)
-    - name: Configure custom DNS servers in systemd-resolved
-      lineinfile:
-        path: /etc/systemd/resolved.conf
-        regexp: "^#?DNS="
-        line: "DNS={{ dns_server_1 }} {{ dns_server_2 }}"
-        backup: yes
+    # DNS Hardening (drop-in config — survives package upgrades and WireGuard overwrites)
+    - name: Ensure systemd-resolved drop-in directory exists
+      file:
+        path: /etc/systemd/resolved.conf.d
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Deploy hardcoded DNS configuration drop-in
+      copy:
+        dest: /etc/systemd/resolved.conf.d/dns.conf
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          [Resolve]
+          DNS={{ dns_server_1 }} {{ dns_server_2 }}
+          FallbackDNS=
       notify: Restart systemd-resolved
 
-    - name: Disable fallback to DHCP-provided DNS
+    - name: Disable DNS in main resolved.conf to avoid conflicts
       lineinfile:
         path: /etc/systemd/resolved.conf
-        regexp: "^#?FallbackDNS="
-        line: "FallbackDNS="
-        backup: yes
-      notify: Restart systemd-resolved
+        regexp: "^DNS="
+        line: "#DNS="
+      failed_when: false
 
     - name: Flush DNS handlers to apply new resolvers immediately
       meta: flush_handlers
